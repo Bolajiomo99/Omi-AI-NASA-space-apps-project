@@ -3271,3 +3271,35 @@ img.sidebar-user-avatar {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Omi mascot in the welcome banner */
+.welcome-hero-art {
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-hero-art svg {
+  position: absolute;
+  inset: 0;
+}
+
+.hero-mascot {
+  position: absolute;
+  left: 50%;
+  bottom: 6%;
+  transform: translateX(-50%);
+  height: 86%;
+  max-height: 230px;
+  width: auto;
+  filter: drop-shadow(0 10px 14px rgba(16, 42, 67, 0.25));
+  animation: omi-float 4s ease-in-out infinite;
+}
+
+@keyframes omi-float {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, -6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-mascot { animation: none; }
+}

@@ -35,7 +35,6 @@
     </filter>
   </defs>
 
-  <circle cx="160" cy="165" r="140" fill="url(#halo)"/>
   <ellipse cx="160" cy="318" rx="78" ry="10" fill="#102A43" opacity="0.14"/>
 
   <!-- legs -->

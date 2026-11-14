@@ -32,17 +32,13 @@
         <a href="{{ url_for('upload') }}" class="btn btn-ghost">Upload a dataset</a>
       </div>
     </div>
-    <div class="welcome-hero-art" aria-hidden="true">
+    <div class="welcome-hero-art">
       <svg viewBox="0 0 360 200" preserveAspectRatio="xMidYMid slice">
         <defs>
           <linearGradient id="hero-sky" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="#BFE3F5"/>
             <stop offset="100%" stop-color="#E8F3FA"/>
           </linearGradient>
-          <radialGradient id="hero-globe" cx="35%" cy="30%" r="75%">
-            <stop offset="0%" stop-color="#5FC7E8"/>
-            <stop offset="100%" stop-color="#1B6FA8"/>
-          </radialGradient>
         </defs>
         <rect width="360" height="200" fill="url(#hero-sky)"/>
         <circle cx="300" cy="46" r="18" fill="#FFF4C2" opacity="0.9"/>
@@ -53,15 +49,8 @@
           <circle cx="80" cy="126" r="20"/><rect x="78" y="136" width="4" height="26" fill="#5B4636"/>
           <circle cx="330" cy="128" r="18"/><rect x="328" y="138" width="4" height="24" fill="#5B4636"/>
         </g>
-        <g transform="translate(200 92)">
-          <circle r="52" fill="url(#hero-globe)"/>
-          <path d="M-30 -30 C -10 -40, 6 -28, 0 -12 S -24 4, -34 -6 Z M8 -6 C 22 -14, 40 -2, 36 14 S 14 30, 6 20 S -2 2, 8 -6 Z M-20 18 C -8 14, 0 26, -6 36 S -26 34, -20 18 Z" fill="#7CC98C"/>
-          <circle cx="-4" cy="6" r="4" fill="#168C83" stroke="#fff" stroke-width="1.5"/>
-          <circle cx="6" cy="4" r="4" fill="#C2410C" stroke="#fff" stroke-width="1.5"/>
-          <ellipse rx="52" ry="14" fill="none" stroke="#ffffff" stroke-opacity="0.35"/>
-        </g>
-        <path d="M150 60 C 175 30, 230 22, 262 40" fill="none" stroke="#168C83" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 7"/>
       </svg>
+      <img class="hero-mascot" src="{{ url_for('static', filename=mascot_image) }}" alt="Omi, the Omi AI mascot">
     </div>
   </section>
 
