@@ -80,6 +80,17 @@
       </div>
 
       <div id="file-error-banner" class="notice notice-error is-hidden" style="margin-top: 16px;" role="alert"></div>
+
+      <div class="quick-tips" aria-label="Quick tips">
+        <strong class="quick-tips-title">Quick tips</strong>
+        <ul>
+          <li>Include a date column (e.g. 2020-01-01, 2020-01 or 2020)</li>
+          <li>Use numbers only in the measurement column</li>
+          <li>Check the preview before you analyse</li>
+          <li>Monthly data unlocks the Seasonal Mann-Kendall test</li>
+        </ul>
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('sample_file', name='lagos_monthly_temperature_nasa_power.csv') }}" download>Download a sample CSV (real NASA data)</a>
+      </div>
     </div>
   </section>
 

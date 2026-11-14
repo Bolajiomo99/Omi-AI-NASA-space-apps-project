@@ -59,6 +59,17 @@
         bubble.appendChild(p);
       });
 
+      var avatarSrc = root.getAttribute(role === 'user' ? 'data-avatar-src' : 'data-mascot-src');
+      if (avatarSrc && !opts.isError) {
+        var avatar = document.createElement('img');
+        avatar.className = 'chat-avatar';
+        avatar.src = avatarSrc;
+        avatar.alt = '';
+        avatar.width = 32;
+        avatar.height = 32;
+        row.classList.add('has-avatar');
+        row.appendChild(avatar);
+      }
       row.appendChild(sender);
       row.appendChild(bubble);
 
@@ -178,7 +189,7 @@
       voiceBtn.classList.toggle('is-listening', on);
       voiceBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
       voiceBtn.setAttribute('aria-label', on ? 'Stop listening' : 'Speak your question');
-      if (input) input.placeholder = on ? 'Listening… speak now' : 'Ask Omi about temperature or rainfall trends…';
+      if (input) input.placeholder = on ? 'Listening… speak now' : 'Ask Omi about the climate…';
     }
 
     if (SpeechRecognition && voiceBtn) {
@@ -286,6 +297,15 @@
         appendBubble('assistant', 'Conversation cleared. What would you like to investigate?');
       });
     }
+
+    // Arrived from the topbar search box: /assistant?q=...
+    try {
+      var q = new URLSearchParams(window.location.search).get('q');
+      if (q && q.trim() && !sessionStorage.getItem('omi_pending_investigation')) {
+        if (window.history && window.history.replaceState) window.history.replaceState(null, '', window.location.pathname);
+        submitQuestion(q.trim().slice(0, 300), false);
+      }
+    } catch (e) {}
 
     // Arrived from the dashboard's "Ask Omi about this" button.
     try {

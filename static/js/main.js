@@ -19,16 +19,32 @@
       .replace(/'/g, '&#39;');
   }
 
-  function getSavedTheme() {
+  function systemPrefersDark() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+
+  /** The stored choice: 'light', 'dark' or 'system' (follow the device). */
+  function getThemePreference() {
     try {
       var saved = localStorage.getItem(THEME_STORAGE_KEY);
-      if (saved === 'dark' || saved === 'light') return saved;
+      if (saved === 'dark' || saved === 'light' || saved === 'system') return saved;
     } catch (e) {}
-    return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    return 'system';
+  }
+
+  function resolveTheme(pref) {
+    if (pref === 'system') return systemPrefersDark() ? 'dark' : 'light';
+    return pref === 'dark' ? 'dark' : 'light';
+  }
+
+  /** The theme currently shown ('light' or 'dark'). */
+  function getSavedTheme() {
+    return resolveTheme(getThemePreference());
   }
 
   function applyTheme(theme) {
-    var normalized = theme === 'dark' ? 'dark' : 'light';
+    var pref = (theme === 'dark' || theme === 'system') ? theme : 'light';
+    var normalized = resolveTheme(pref);
     document.documentElement.setAttribute('data-theme', normalized);
     if (normalized === 'dark') {
       document.documentElement.classList.add('dark');
@@ -37,10 +53,9 @@
     }
 
     try {
-      localStorage.setItem(THEME_STORAGE_KEY, normalized);
+      localStorage.setItem(THEME_STORAGE_KEY, pref);
     } catch (e) {}
 
-    // Sync topbar icon buttons
     var sunIcons = document.querySelectorAll('.theme-icon-sun');
     var moonIcons = document.querySelectorAll('.theme-icon-moon');
     sunIcons.forEach(function (el) {
@@ -50,17 +65,24 @@
       el.classList.toggle('is-hidden', normalized !== 'dark');
     });
 
-    // Sync settings page theme buttons
-    var themeChoiceBtns = document.querySelectorAll('[data-set-theme]');
-    themeChoiceBtns.forEach(function (btn) {
-      var isMatch = btn.getAttribute('data-set-theme') === normalized;
+    document.querySelectorAll('[data-set-theme]').forEach(function (btn) {
+      var isMatch = btn.getAttribute('data-set-theme') === pref;
       btn.classList.toggle('is-active', isMatch);
       btn.setAttribute('aria-pressed', isMatch ? 'true' : 'false');
     });
+
+    document.dispatchEvent(new CustomEvent('omi:themechange', { detail: { theme: normalized } }));
   }
 
   function initThemeControls() {
-    applyTheme(getSavedTheme());
+    applyTheme(getThemePreference());
+
+    if (window.matchMedia) {
+      var mq = window.matchMedia('(prefers-color-scheme: dark)');
+      var onChange = function () { if (getThemePreference() === 'system') applyTheme('system'); };
+      if (mq.addEventListener) mq.addEventListener('change', onChange);
+      else if (mq.addListener) mq.addListener(onChange);
+    }
 
     document.querySelectorAll('[data-theme-toggle]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -189,7 +211,7 @@
       fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(Object.assign({ theme: getSavedTheme() }, updated))
+        body: JSON.stringify(Object.assign({ theme: getThemePreference() }, updated))
       })
         .then(function (res) {
           if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -314,6 +336,7 @@
 
     var labelSet = {};
     series.forEach(function (s) { s.points.forEach(function (p) { labelSet[p.label] = true; }); });
+    (cfg.extraLabels || []).forEach(function (l) { labelSet[String(l)] = true; });
     var labels = Object.keys(labelSet).sort();
     var index = {};
     labels.forEach(function (l, i) { index[l] = i; });
@@ -364,6 +387,16 @@
     }
     if (unit) {
       parts.push('<text x="14" y="' + (pad.top + plotH / 2) + '" transform="rotate(-90 14 ' + (pad.top + plotH / 2) + ')" text-anchor="middle" fill="var(--text-muted)" font-family="JetBrains Mono, monospace" font-size="11">' + escapeHtml(unit) + '</text>');
+    }
+
+    // Optional shaded region (e.g. hidden observations in the challenge).
+    if (cfg.shadeFrom && index[cfg.shadeFrom] !== undefined) {
+      var sx = xFor(cfg.shadeFrom);
+      parts.push('<rect x="' + sx.toFixed(1) + '" y="' + pad.top + '" width="' + Math.max(0, width - pad.right - sx).toFixed(1) + '" height="' + plotH + '" fill="var(--bg-accent-tint)" opacity="0.85"/>');
+      parts.push('<line x1="' + sx.toFixed(1) + '" y1="' + pad.top + '" x2="' + sx.toFixed(1) + '" y2="' + (pad.top + plotH) + '" stroke="var(--text-muted)" stroke-dasharray="4 4"/>');
+      if (cfg.shadeLabel) {
+        parts.push('<text x="' + ((sx + width - pad.right) / 2).toFixed(1) + '" y="' + (pad.top + plotH / 2) + '" text-anchor="middle" fill="var(--text-muted)" font-family="Manrope, sans-serif" font-weight="700" font-size="14">' + escapeHtml(cfg.shadeLabel) + '</text>');
+      }
     }
 
     series.forEach(function (s, si) {
@@ -459,6 +492,7 @@
     escapeHtml: escapeHtml,
     applyTheme: applyTheme,
     getSavedTheme: getSavedTheme,
+    getThemePreference: getThemePreference,
     getPreferences: getPreferences,
     renderLineChartSvg: renderLineChartSvg,
     renderChart: renderChart,
@@ -467,8 +501,26 @@
     unitsFor: unitsFor
   };
 
+  function initNotifications() {
+    var btn = document.getElementById('notif-btn');
+    var panel = document.getElementById('notif-panel');
+    if (!btn || !panel) return;
+    btn.addEventListener('click', function (event) {
+      event.stopPropagation();
+      var open = panel.classList.toggle('is-hidden') === false;
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.addEventListener('click', function (event) {
+      if (!panel.contains(event.target)) {
+        panel.classList.add('is-hidden');
+        btn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     initThemeControls();
+    initNotifications();
     initNavigationDrawers();
     initSettingsPage();
     initProfilePage();

@@ -182,8 +182,24 @@ def run_investigation(region_id, variable_id, start_year=None, end_year=None,
         "alpha": alpha,
         "detail": detail,
     }
+    result["extremes"] = _extremes(valid_monthly, annual)
     result["explanation"] = explain_investigation(result, detail)
+    result["summary"] = explain_investigation(result, "simple")
     return result
+
+
+def _extremes(valid_monthly, annual):
+    """Highest/lowest monthly and yearly values with their dates."""
+    out = {}
+    if not valid_monthly.empty:
+        hi = valid_monthly.loc[valid_monthly["value"].idxmax()]
+        lo = valid_monthly.loc[valid_monthly["value"].idxmin()]
+        out["highest_month"] = {"date": hi["date"].strftime("%Y-%m"), "value": clean_number(hi["value"], 3)}
+        out["lowest_month"] = {"date": lo["date"].strftime("%Y-%m"), "value": clean_number(lo["value"], 3)}
+    if len(annual):
+        out["highest_year"] = {"year": int(annual.idxmax()), "value": clean_number(annual.max(), 3)}
+        out["lowest_year"] = {"year": int(annual.idxmin()), "value": clean_number(annual.min(), 3)}
+    return out
 
 
 def _limitations(variable, source_id="power"):
@@ -249,6 +265,7 @@ def run_comparison(variable_id, start_year=None, end_year=None, regions=None,
         ],
     }
     result["explanation"] = explain_comparison(result, result["detail"])
+    result["summary"] = explain_comparison(result, "simple")
     return result
 
 

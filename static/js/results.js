@@ -105,10 +105,36 @@
     }
     var t = result.trend;
     var s = result.statistics;
-    return '<div class="kpi-cell"><div class="kpi-label">Trend direction</div><div class="kpi-value kpi-text">' + esc(t.direction) + '</div></div>' +
-      '<div class="kpi-cell"><div class="kpi-label">Rate (Sen\'s slope)</div><div class="kpi-value">' + fmt(u.toRate(t.sens_slope.slope_per_decade), digits, true) + ' <span class="kpi-unit">' + esc(u.rate) + '</span></div></div>' +
-      '<div class="kpi-cell"><div class="kpi-label">Mann-Kendall p-value</div><div class="kpi-value">' + ui().formatP(t.mann_kendall.p_value) + '</div><div>' + sig(t) + '</div></div>' +
-      '<div class="kpi-cell"><div class="kpi-label">Yearly average</div><div class="kpi-value">' + fmt(u.toLevel(s.mean), digits) + ' <span class="kpi-unit">' + esc(u.level) + '</span></div></div>';
+    var ex = result.extremes || {};
+    var monthly = u.monthly;
+    var md = u.level === 'mm/year' ? 0 : 1;
+    function monthLabel(ym) {
+      if (!ym) return '';
+      var parts = String(ym).split('-');
+      var names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return (names[Number(parts[1]) - 1] || '') + ' ' + parts[0];
+    }
+    function icon(kind) {
+      var paths = {
+        avg: '<path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>',
+        rain: '<path d="M12 2.7C9 7 6 10.2 6 14a6 6 0 0 0 12 0c0-3.8-3-7-6-11.3z"/>',
+        up: '<line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>',
+        down: '<line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>',
+        trend: '<polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/>',
+        rate: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
+        sig: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>'
+      };
+      return '<span class="kpi-icon kpi-icon-' + kind + '" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + paths[kind] + '</svg></span>';
+    }
+    var isRain = result.variable && result.variable.id === 'rainfall';
+    var hi = ex.highest_month || {};
+    var lo = ex.lowest_month || {};
+    return '<div class="kpi-cell kpi-cell-icon">' + icon(isRain ? 'rain' : 'avg') + '<div><div class="kpi-label">' + (isRain ? 'Avg. yearly rainfall' : 'Avg. temperature') + '</div><div class="kpi-value">' + fmt(u.toLevel(s.mean), digits) + ' <span class="kpi-unit">' + esc(u.level) + '</span></div></div></div>' +
+      '<div class="kpi-cell kpi-cell-icon">' + icon('up') + '<div><div class="kpi-label">Highest month</div><div class="kpi-value">' + fmt(u.toMonthly(hi.value), md) + ' <span class="kpi-unit">' + esc(monthly) + '</span></div><div class="kpi-sub">' + esc(monthLabel(hi.date)) + '</div></div></div>' +
+      '<div class="kpi-cell kpi-cell-icon">' + icon('down') + '<div><div class="kpi-label">Lowest month</div><div class="kpi-value">' + fmt(u.toMonthly(lo.value), md) + ' <span class="kpi-unit">' + esc(monthly) + '</span></div><div class="kpi-sub">' + esc(monthLabel(lo.date)) + '</div></div></div>' +
+      '<div class="kpi-cell kpi-cell-icon">' + icon('trend') + '<div><div class="kpi-label">Trend</div><div class="kpi-value kpi-text">' + esc(t.direction) + '</div></div></div>' +
+      '<div class="kpi-cell kpi-cell-icon">' + icon('rate') + '<div><div class="kpi-label">Rate (Sen\'s slope)</div><div class="kpi-value">' + fmt(u.toRate(t.sens_slope.slope_per_decade), digits, true) + ' <span class="kpi-unit">' + esc(u.rate) + '</span></div></div></div>' +
+      '<div class="kpi-cell kpi-cell-icon">' + icon('sig') + '<div><div class="kpi-label">Mann-Kendall p-value</div><div class="kpi-value">' + ui().formatP(t.mann_kendall.p_value) + '</div><div>' + sig(t) + '</div></div></div>';
   }
 
   function row(label, value) {

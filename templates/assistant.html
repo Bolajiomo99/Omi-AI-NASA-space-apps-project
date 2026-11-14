@@ -8,7 +8,9 @@
 <div id="assistant-root"
      class="assistant-layout"
      data-assistant-endpoint="/api/assistant/chat"
-     data-voice-endpoint="/api/assistant/voice">
+     data-voice-endpoint="/api/assistant/voice"
+     data-avatar-src="{{ url_for('static', filename=avatar_image) }}"
+     data-mascot-src="{{ url_for('static', filename=mascot_image) }}">
 
   <!-- Left Column: Introduction & Suggested Questions -->
   <aside style="display: flex; flex-direction: column; gap: 20px;">
@@ -72,8 +74,9 @@
     <div id="assistant-status-notice" class="notice notice-warning is-hidden" style="margin: 14px 20px 0;" role="status" aria-live="polite"></div>
 
     <div id="chat-messages" class="chat-messages" aria-live="polite">
-      <div class="chat-bubble-row is-assistant">
-        <span class="chat-sender">Omi AI Assistant</span>
+      <div class="chat-bubble-row is-assistant has-avatar">
+        <img class="chat-avatar" src="{{ url_for('static', filename=mascot_image) }}" alt="" width="32" height="32">
+        <span class="chat-sender">Omi AI</span>
         <div class="chat-bubble">Hi, I'm Omi. Ask me how temperature or rainfall has changed in Lagos or Edo — for example, "How has rainfall changed in Lagos since 2001?" — or tap the microphone and ask out loud.</div>
       </div>
     </div>
@@ -88,7 +91,7 @@
       <textarea id="chat-question-input"
                 class="chat-input"
                 rows="1"
-                placeholder="Ask Omi about temperature or rainfall trends…"
+                placeholder="Ask Omi about the climate…"
                 required></textarea>
       <button type="button" id="voice-btn" class="btn btn-secondary voice-btn" aria-label="Speak your question" aria-pressed="false" title="Speak your question">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -107,6 +110,14 @@
       </button>
     </form>
   </section>
+  <!-- Right column: Omi mascot -->
+  <aside class="card mascot-panel" aria-label="Omi">
+    <div class="mascot-halo">
+      <img src="{{ url_for('static', filename=mascot_image) }}" alt="Omi, the Omi AI mascot" class="mascot-img">
+    </div>
+    <p class="mascot-caption">Smarter insights.<br>Greener tomorrow.</p>
+    <p class="mascot-sub">Hi, I'm Omi. I analyse real NASA data and explain what it means.</p>
+  </aside>
 </div>
 {% endblock %}
 
