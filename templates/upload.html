@@ -1,0 +1,59 @@
+
+{% extends "base.html" %}
+
+{% block title %}Upload Dataset | Omi AI{% endblock %}
+
+{% block content %}
+
+<h1>Upload Your Dataset</h1>
+
+<p>
+    Upload a CSV file containing historical environmental measurements.
+</p>
+
+<section class="panel">
+
+    <form id="upload-form">
+
+        <label>CSV File</label>
+
+        <input
+            type="file"
+            name="file"
+            accept=".csv"
+            required
+        >
+
+        <label>Date Column</label>
+
+        <input
+            type="text"
+            name="date_column"
+            value="date"
+            required
+        >
+
+        <label>Measurement Column</label>
+
+        <input
+            type="text"
+            name="value_column"
+            value="value"
+            required
+        >
+
+        <button type="submit" class="button">
+            Analyse Dataset
+        </button>
+
+    </form>
+
+    <pre id="upload-result"></pre>
+
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/upload.js') }}"></script>
+{% endblock %}

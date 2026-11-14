@@ -1,0 +1,40 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>{% block title %}Omi AI{% endblock %}</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+<header class="topbar">
+
+    <a href="/" class="brand">🌍 Omi AI</a>
+
+    <nav>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/assistant">AI Assistant</a>
+        <a href="/upload">Upload Data</a>
+        <a href="/profile">Profile</a>
+        <a href="/settings">Settings</a>
+    </nav>
+
+</header>
+
+<main class="container">
+    {% block content %}{% endblock %}
+</main>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+{% block scripts %}{% endblock %}
+
+</body>
+</html>

@@ -1,0 +1,17 @@
+Flask
+Flask-Cors
+python-dotenv
+requests
+earthaccess
+pandas
+numpy
+plotly
+pymannkendall
+statsmodels
+scipy
+langchain-google-genai
+langgraph
+langchain-core
+xarray
+netCDF4
+pytest
