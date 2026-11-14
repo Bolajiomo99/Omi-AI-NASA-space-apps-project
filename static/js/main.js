@@ -19,16 +19,32 @@
       .replace(/'/g, '&#39;');
   }
 
-  function getSavedTheme() {
+  function systemPrefersDark() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+
+  /** The stored choice: 'light', 'dark' or 'system' (follow the device). */
+  function getThemePreference() {
     try {
       var saved = localStorage.getItem(THEME_STORAGE_KEY);
-      if (saved === 'dark' || saved === 'light') return saved;
+      if (saved === 'dark' || saved === 'light' || saved === 'system') return saved;
     } catch (e) {}
-    return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    return 'system';
+  }
+
+  function resolveTheme(pref) {
+    if (pref === 'system') return systemPrefersDark() ? 'dark' : 'light';
+    return pref === 'dark' ? 'dark' : 'light';
+  }
+
+  /** The theme currently shown ('light' or 'dark'). */
+  function getSavedTheme() {
+    return resolveTheme(getThemePreference());
   }
 
   function applyTheme(theme) {
-    var normalized = theme === 'dark' ? 'dark' : 'light';
+    var pref = (theme === 'dark' || theme === 'system') ? theme : 'light';
+    var normalized = resolveTheme(pref);
     document.documentElement.setAttribute('data-theme', normalized);
     if (normalized === 'dark') {
       document.documentElement.classList.add('dark');
@@ -37,10 +53,9 @@
     }
 
     try {
-      localStorage.setItem(THEME_STORAGE_KEY, normalized);
+      localStorage.setItem(THEME_STORAGE_KEY, pref);
     } catch (e) {}
 
-    // Sync topbar icon buttons
     var sunIcons = document.querySelectorAll('.theme-icon-sun');
     var moonIcons = document.querySelectorAll('.theme-icon-moon');
     sunIcons.forEach(function (el) {
@@ -50,17 +65,24 @@
       el.classList.toggle('is-hidden', normalized !== 'dark');
     });
 
-    // Sync settings page theme buttons
-    var themeChoiceBtns = document.querySelectorAll('[data-set-theme]');
-    themeChoiceBtns.forEach(function (btn) {
-      var isMatch = btn.getAttribute('data-set-theme') === normalized;
+    document.querySelectorAll('[data-set-theme]').forEach(function (btn) {
+      var isMatch = btn.getAttribute('data-set-theme') === pref;
       btn.classList.toggle('is-active', isMatch);
       btn.setAttribute('aria-pressed', isMatch ? 'true' : 'false');
     });
+
+    document.dispatchEvent(new CustomEvent('omi:themechange', { detail: { theme: normalized } }));
   }
 
   function initThemeControls() {
-    applyTheme(getSavedTheme());
+    applyTheme(getThemePreference());
+
+    if (window.matchMedia) {
+      var mq = window.matchMedia('(prefers-color-scheme: dark)');
+      var onChange = function () { if (getThemePreference() === 'system') applyTheme('system'); };
+      if (mq.addEventListener) mq.addEventListener('change', onChange);
+      else if (mq.addListener) mq.addListener(onChange);
+    }
 
     document.querySelectorAll('[data-theme-toggle]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -189,7 +211,7 @@
       fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(Object.assign({ theme: getSavedTheme() }, updated))
+        body: JSON.stringify(Object.assign({ theme: getThemePreference() }, updated))
       })
         .then(function (res) {
           if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -459,6 +481,7 @@
     escapeHtml: escapeHtml,
     applyTheme: applyTheme,
     getSavedTheme: getSavedTheme,
+    getThemePreference: getThemePreference,
     getPreferences: getPreferences,
     renderLineChartSvg: renderLineChartSvg,
     renderChart: renderChart,

@@ -41,7 +41,6 @@
     var comparisonCard = document.getElementById('comparison-card');
     var comparisonBody = document.getElementById('comparison-panel-body');
     var sourceBox = document.getElementById('results-source');
-    var askBtn = document.getElementById('ask-omi-btn');
 
     var coverage = { start_year: 1981, end_year: 2025, min_years: 5 };
     var current = null;
@@ -159,6 +158,8 @@
         explanationMeta.textContent = ({ simple: 'Simple', detailed: 'Detailed', research: 'Research-level' })[result.detail] +
           ' explanation built from the calculated results';
       }
+      var insight = document.getElementById('results-insight');
+      if (insight) insight.textContent = result.summary || '';
       if (statsBox) statsBox.innerHTML = R.statsHtml(result);
       if (comparisonCard) comparisonCard.classList.toggle('is-hidden', !R.isComparison(result));
       if (comparisonBody) comparisonBody.innerHTML = R.comparisonHtml(result);
@@ -192,10 +193,7 @@
         body.region = params.region;
       }
 
-      document.querySelectorAll('[data-region-card]').forEach(function (card) {
-        var key = card.getAttribute('data-region-card');
-        card.classList.toggle('is-selected', compare || key === params.region);
-      });
+      highlightRegion(params.region, true);
 
       if (submitBtn) submitBtn.disabled = true;
       setBanner('info', 'Retrieving ' + sourceInfo().name + ' records and running the trend analysis… (the first request for a region can take a few seconds)');
@@ -224,6 +222,50 @@
           if (submitBtn) submitBtn.disabled = false;
         });
     }
+
+    function highlightRegion(key, fly) {
+      document.querySelectorAll('[data-region-card]').forEach(function (card) {
+        var id = card.getAttribute('data-region-card');
+        card.classList.toggle('is-selected', key === 'both' || id === key);
+      });
+      if (window.OmiMap) window.OmiMap.select(key, { fly: !!fly });
+    }
+
+    if (regionSelect) {
+      regionSelect.addEventListener('change', function () { highlightRegion(regionSelect.value, true); });
+    }
+
+    // Map -> form: clicking a marker selects the region; popup buttons run the analysis.
+    if (window.OmiMap) {
+      window.OmiMap.onSelect(function (key) {
+        if (regionSelect) regionSelect.value = key;
+        highlightRegion(key, false);
+      });
+    }
+    document.addEventListener('omi:map-analyse', function (event) {
+      var key = event.detail && event.detail.region;
+      if (!key || !regionSelect) return;
+      regionSelect.value = key;
+      investigate(readParams());
+    });
+
+    var compareBtn = document.getElementById('map-compare-btn');
+    if (compareBtn) {
+      compareBtn.addEventListener('click', function () {
+        if (regionSelect) regionSelect.value = 'both';
+        investigate(readParams());
+      });
+    }
+
+    document.querySelectorAll('[data-scroll-map]').forEach(function (link) {
+      link.addEventListener('click', function (event) {
+        event.preventDefault();
+        if (regionSelect) regionSelect.value = 'both';
+        highlightRegion('both', true);
+        var target = document.getElementById('study-regions');
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    });
 
     if (form) {
       form.addEventListener('submit', function (event) {
@@ -258,7 +300,7 @@
       });
     });
 
-    if (askBtn) {
+    document.querySelectorAll('[data-ask-omi]').forEach(function (askBtn) {
       askBtn.addEventListener('click', function (event) {
         if (!currentParams) return;
         event.preventDefault();
@@ -278,12 +320,12 @@
         } catch (e) {}
         window.location.href = assistantUrl + '?from=dashboard';
       });
-    }
+    });
 
     var exploreBtn = document.getElementById('explore-trends-btn');
     if (exploreBtn) {
       exploreBtn.addEventListener('click', function () {
-        var target = document.getElementById('investigation-form');
+        var target = document.getElementById('study-regions');
         if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
     }
@@ -295,6 +337,7 @@
     if (regionSelect) {
       if (['lagos', 'edo', 'both'].indexOf(preselected) !== -1) regionSelect.value = preselected;
       else if (['lagos', 'edo', 'both'].indexOf(preferred) !== -1) regionSelect.value = preferred;
+      highlightRegion(regionSelect.value, false);
     }
 
     fetch(coverageEndpoint, { headers: { 'Accept': 'application/json' } })

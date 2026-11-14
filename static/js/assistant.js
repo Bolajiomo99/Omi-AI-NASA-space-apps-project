@@ -287,6 +287,15 @@
       });
     }
 
+    // Arrived from the topbar search box: /assistant?q=...
+    try {
+      var q = new URLSearchParams(window.location.search).get('q');
+      if (q && q.trim() && !sessionStorage.getItem('omi_pending_investigation')) {
+        if (window.history && window.history.replaceState) window.history.replaceState(null, '', window.location.pathname);
+        submitQuestion(q.trim().slice(0, 300), false);
+      }
+    } catch (e) {}
+
     // Arrived from the dashboard's "Ask Omi about this" button.
     try {
       var pending = sessionStorage.getItem('omi_pending_investigation');

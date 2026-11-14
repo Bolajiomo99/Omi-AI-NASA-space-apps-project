@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, jsonify, render_template, request, session
+from flask import Flask, abort, jsonify, render_template, request, send_from_directory, session
 from werkzeug.exceptions import HTTPException
 
 from config import Config
@@ -21,6 +21,11 @@ def create_app(config_overrides=None):
         from flask_cors import CORS
 
         CORS(app, resources={r"/api/*": {"origins": app.config["CORS_ORIGINS"]}})
+
+    @app.context_processor
+    def inject_profile():
+        # Shown in the sidebar user card on every workspace page.
+        return {"current_profile": session.get("profile") or {}}
 
     @app.route("/")
     def landing():
@@ -45,6 +50,13 @@ def create_app(config_overrides=None):
     @app.route("/upload")
     def upload():
         return render_template("upload.html")
+
+    @app.route("/samples/<path:name>")
+    def sample_file(name):
+        folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "sample")
+        if not name.endswith(".csv"):
+            abort(404)
+        return send_from_directory(folder, name, as_attachment=True)
 
     @app.route("/health")
     def health():

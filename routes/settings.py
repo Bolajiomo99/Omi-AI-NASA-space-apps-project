@@ -10,7 +10,7 @@ DEFAULTS = {
     "alpha": "0.05",
 }
 ALLOWED = {
-    "theme": {"light", "dark"},
+    "theme": {"light", "dark", "system"},
     "default_region": {"lagos", "edo", "both"},
     "temp_unit": {"°C", "K"},
     "rain_unit": {"mm", "mm/day"},
