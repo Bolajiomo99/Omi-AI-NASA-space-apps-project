@@ -36,6 +36,11 @@ class Config:
     # (NASA Giovanni). NASA POWER, the default source, needs no login.
     EARTHDATA_TOKEN = os.getenv("EARTHDATA_TOKEN")
 
+    # Live weather card (MET Norway asks clients to identify themselves).
+    WEATHER_USER_AGENT = os.getenv(
+        "WEATHER_USER_AGENT", "OmiAI-NASA-SpaceApps/1.0 (NASA Space Apps 2026 project)"
+    )
+
     # --- NASA POWER ----------------------------------------------------------
     NASA_POWER_URL = os.getenv(
         "NASA_POWER_URL",

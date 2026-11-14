@@ -3303,3 +3303,327 @@ img.sidebar-user-avatar {
 @media (prefers-reduced-motion: reduce) {
   .hero-mascot { animation: none; }
 }
+
+/* Welcome banner: Omi alone on a soft background */
+.welcome-hero-art {
+  background:
+    radial-gradient(circle at 50% 58%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(160deg, var(--bg-accent-tint), var(--bg-teal-tint));
+  min-height: 220px;
+}
+
+html[data-theme="dark"] .welcome-hero-art {
+  background:
+    radial-gradient(circle at 50% 58%, rgba(95, 199, 232, 0.18) 0%, rgba(95, 199, 232, 0) 55%),
+    linear-gradient(160deg, var(--bg-accent-tint), var(--bg-subtle));
+}
+
+.hero-mascot {
+  bottom: 8%;
+  height: 84%;
+  max-height: 240px;
+}
+
+.mascot-img {
+  width: 80%;
+  height: 80%;
+}
+
+/* ==========================================================================
+   Omi greeting + live weather card (dashboard hero)
+   ========================================================================== */
+.welcome-hero {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+}
+
+.weather-hero {
+  position: relative;
+  padding: 18px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0) 45%),
+    linear-gradient(170deg, #DCEBFA 0%, #C8DEF5 100%);
+}
+
+html[data-theme="dark"] .weather-hero {
+  background: linear-gradient(170deg, #15344E 0%, #0D2034 100%);
+}
+
+.omi-greet {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.omi-greet-mascot {
+  width: 92px;
+  height: auto;
+  flex: none;
+  filter: drop-shadow(0 6px 10px rgba(16, 42, 67, 0.25));
+  animation: omi-float 4s ease-in-out infinite;
+}
+
+.speech-bubble {
+  position: relative;
+  background: #FFFFFF;
+  color: #102A43;
+  border-radius: 16px;
+  padding: 12px 16px;
+  box-shadow: 0 6px 18px rgba(16, 42, 67, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  max-width: 320px;
+}
+
+.speech-bubble strong {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+}
+
+.speech-bubble::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 8px solid transparent;
+  border-right-color: #FFFFFF;
+  border-left: 0;
+}
+
+.weather-card {
+  position: relative;
+  border-radius: 18px;
+  padding: 16px 18px 12px;
+  color: #FFFFFF;
+  background:
+    radial-gradient(circle at 85% 10%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 40%),
+    linear-gradient(160deg, #2F6FD6 0%, #1E4FA8 55%, #173E86 100%);
+  box-shadow: 0 12px 28px rgba(23, 62, 134, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  overflow: hidden;
+}
+
+.weather-hero.is-loading .weather-card {
+  opacity: 0.85;
+}
+
+.wx-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.wx-tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.wx-tab {
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font: inherit;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 5px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.wx-tab.is-active {
+  background: #FFFFFF;
+  color: #1E4FA8;
+}
+
+.wx-tab:focus-visible {
+  outline: 2px solid #FFFFFF;
+  outline-offset: 2px;
+}
+
+.wx-temp {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(2.6rem, 4.5vw, 3.4rem);
+  line-height: 1;
+  margin-top: 8px;
+  letter-spacing: -0.02em;
+}
+
+.wx-deg {
+  font-size: 0.5em;
+  vertical-align: top;
+  margin-left: 2px;
+  opacity: 0.9;
+}
+
+.wx-cond {
+  font-size: 1rem;
+  font-weight: 600;
+  opacity: 0.95;
+  margin-top: 4px;
+}
+
+.wx-icon {
+  width: 120px;
+  height: auto;
+  flex: none;
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.25));
+}
+
+.wx-metrics {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.wx-metric {
+  flex: 1;
+  min-width: 130px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #173E86;
+  font-size: 0.85rem;
+}
+
+.wx-metric svg {
+  width: 16px;
+  height: 16px;
+  color: #2F8FE0;
+  flex: none;
+}
+
+.wx-metric strong {
+  margin-left: auto;
+  font-family: var(--font-display);
+}
+
+.wx-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #173E86;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.wx-alert svg {
+  width: 18px;
+  height: 18px;
+  color: #2F8FE0;
+}
+
+.wx-alert.is-rain svg {
+  color: #F08C00;
+}
+
+.wx-hours {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 12px;
+  text-align: center;
+}
+
+.wx-hour {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.wx-hour-label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.78rem;
+  opacity: 0.95;
+}
+
+.wx-hour img {
+  width: 44px;
+  height: auto;
+}
+
+.wx-hour-temp {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.wx-source {
+  margin-top: 8px;
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+.wx-source a {
+  color: #FFFFFF;
+  text-decoration: underline;
+}
+
+.wx-stale {
+  color: #FFE066;
+}
+
+.weather-hero.is-error .wx-icon {
+  opacity: 0.4;
+}
+
+@media (max-width: 800px) {
+  .welcome-hero {
+    grid-template-columns: 1fr;
+  }
+  .weather-hero {
+    order: -1;
+  }
+}
+
+@media (max-width: 420px) {
+  .omi-greet-mascot { width: 72px; }
+  .wx-icon { width: 92px; }
+  .wx-hours { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .omi-greet-mascot { animation: none; }
+}
+
+.weather-hero {
+  padding-top: 24px;
+}
+
+.omi-greet-mascot {
+  width: 86px;
+  margin-top: 4px;
+}
+
+@media (max-width: 480px) {
+  .wx-metric {
+    min-width: 100%;
+  }
+  .topbar-actions .btn-primary.btn-sm {
+    display: none;
+  }
+  .topbar-actions {
+    gap: 6px;
+  }
+}

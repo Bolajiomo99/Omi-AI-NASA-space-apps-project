@@ -2,6 +2,7 @@ from flask import Blueprint, current_app, jsonify, request
 
 from services.analysis_service import run_comparison, run_investigation
 from services.nasa_service import NasaDataError, available_sources
+from services.weather_service import WeatherUnavailable, get_weather
 
 regions_bp = Blueprint("regions", __name__)
 
@@ -125,3 +126,14 @@ def compare():
     except NasaDataError as error:
         return _error(error, 502)
     return jsonify(result)
+
+
+@regions_bp.route("/weather", methods=["GET"])
+def weather():
+    """Live weather for the dashboard card (MET Norway, fallback Open-Meteo)."""
+    try:
+        return jsonify(get_weather(request.args.get("region", "lagos")))
+    except ValueError as error:
+        return _error(error)
+    except WeatherUnavailable as error:
+        return _error(error, 503)

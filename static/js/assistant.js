@@ -189,7 +189,7 @@
       voiceBtn.classList.toggle('is-listening', on);
       voiceBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
       voiceBtn.setAttribute('aria-label', on ? 'Stop listening' : 'Speak your question');
-      if (input) input.placeholder = on ? 'Listening… speak now' : 'Ask Omi about temperature or rainfall trends…';
+      if (input) input.placeholder = on ? 'Listening… speak now' : 'Ask Omi about the climate…';
     }
 
     if (SpeechRecognition && voiceBtn) {
