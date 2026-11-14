@@ -336,6 +336,7 @@
 
     var labelSet = {};
     series.forEach(function (s) { s.points.forEach(function (p) { labelSet[p.label] = true; }); });
+    (cfg.extraLabels || []).forEach(function (l) { labelSet[String(l)] = true; });
     var labels = Object.keys(labelSet).sort();
     var index = {};
     labels.forEach(function (l, i) { index[l] = i; });
@@ -386,6 +387,16 @@
     }
     if (unit) {
       parts.push('<text x="14" y="' + (pad.top + plotH / 2) + '" transform="rotate(-90 14 ' + (pad.top + plotH / 2) + ')" text-anchor="middle" fill="var(--text-muted)" font-family="JetBrains Mono, monospace" font-size="11">' + escapeHtml(unit) + '</text>');
+    }
+
+    // Optional shaded region (e.g. hidden observations in the challenge).
+    if (cfg.shadeFrom && index[cfg.shadeFrom] !== undefined) {
+      var sx = xFor(cfg.shadeFrom);
+      parts.push('<rect x="' + sx.toFixed(1) + '" y="' + pad.top + '" width="' + Math.max(0, width - pad.right - sx).toFixed(1) + '" height="' + plotH + '" fill="var(--bg-accent-tint)" opacity="0.85"/>');
+      parts.push('<line x1="' + sx.toFixed(1) + '" y1="' + pad.top + '" x2="' + sx.toFixed(1) + '" y2="' + (pad.top + plotH) + '" stroke="var(--text-muted)" stroke-dasharray="4 4"/>');
+      if (cfg.shadeLabel) {
+        parts.push('<text x="' + ((sx + width - pad.right) / 2).toFixed(1) + '" y="' + (pad.top + plotH / 2) + '" text-anchor="middle" fill="var(--text-muted)" font-family="Manrope, sans-serif" font-weight="700" font-size="14">' + escapeHtml(cfg.shadeLabel) + '</text>');
+      }
     }
 
     series.forEach(function (s, si) {
@@ -490,8 +501,26 @@
     unitsFor: unitsFor
   };
 
+  function initNotifications() {
+    var btn = document.getElementById('notif-btn');
+    var panel = document.getElementById('notif-panel');
+    if (!btn || !panel) return;
+    btn.addEventListener('click', function (event) {
+      event.stopPropagation();
+      var open = panel.classList.toggle('is-hidden') === false;
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.addEventListener('click', function (event) {
+      if (!panel.contains(event.target)) {
+        panel.classList.add('is-hidden');
+        btn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     initThemeControls();
+    initNotifications();
     initNavigationDrawers();
     initSettingsPage();
     initProfilePage();

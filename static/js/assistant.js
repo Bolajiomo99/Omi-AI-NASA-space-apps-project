@@ -59,6 +59,17 @@
         bubble.appendChild(p);
       });
 
+      var avatarSrc = root.getAttribute(role === 'user' ? 'data-avatar-src' : 'data-mascot-src');
+      if (avatarSrc && !opts.isError) {
+        var avatar = document.createElement('img');
+        avatar.className = 'chat-avatar';
+        avatar.src = avatarSrc;
+        avatar.alt = '';
+        avatar.width = 32;
+        avatar.height = 32;
+        row.classList.add('has-avatar');
+        row.appendChild(avatar);
+      }
       row.appendChild(sender);
       row.appendChild(bubble);
 

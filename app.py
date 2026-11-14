@@ -22,10 +22,24 @@ def create_app(config_overrides=None):
 
         CORS(app, resources={r"/api/*": {"origins": app.config["CORS_ORIGINS"]}})
 
+    img_dir = os.path.join(app.static_folder, "img")
+
+    def first_image(stem, fallback):
+        # Drop e.g. static/img/omi-mascot.png or static/img/avatar.jpg into the
+        # repo to replace the built-in illustrations without code changes.
+        for ext in ("png", "webp", "jpg", "jpeg"):
+            if os.path.exists(os.path.join(img_dir, f"{stem}.{ext}")):
+                return f"img/{stem}.{ext}"
+        return fallback
+
     @app.context_processor
     def inject_profile():
-        # Shown in the sidebar user card on every workspace page.
-        return {"current_profile": session.get("profile") or {}}
+        # Shown in the sidebar user card and top bar on every workspace page.
+        return {
+            "current_profile": session.get("profile") or {},
+            "mascot_image": first_image("omi-mascot", "img/omi-mascot.svg"),
+            "avatar_image": first_image("avatar", "img/avatar-default.svg"),
+        }
 
     @app.route("/")
     def landing():
@@ -34,6 +48,14 @@ def create_app(config_overrides=None):
     @app.route("/dashboard")
     def dashboard():
         return render_template("dashboard.html")
+
+    @app.route("/compare")
+    def compare():
+        return render_template("compare.html")
+
+    @app.route("/challenge")
+    def challenge():
+        return render_template("challenge.html")
 
     @app.route("/assistant")
     def assistant():

@@ -8,7 +8,9 @@
 <div id="assistant-root"
      class="assistant-layout"
      data-assistant-endpoint="/api/assistant/chat"
-     data-voice-endpoint="/api/assistant/voice">
+     data-voice-endpoint="/api/assistant/voice"
+     data-avatar-src="{{ url_for('static', filename=avatar_image) }}"
+     data-mascot-src="{{ url_for('static', filename=mascot_image) }}">
 
   <!-- Left Column: Introduction & Suggested Questions -->
   <aside style="display: flex; flex-direction: column; gap: 20px;">
@@ -35,24 +37,6 @@
         <span>Read replies aloud</span>
       </label>
       <p class="form-hint" id="voice-support-hint" style="margin-top: 8px;">Use the microphone button to talk to Omi.</p>
-    </section>
-
-    <section class="card mascot-card" aria-hidden="true">
-      <svg viewBox="0 0 160 140" class="mascot-svg">
-        <ellipse cx="80" cy="128" rx="40" ry="6" fill="#102A43" opacity="0.12"/>
-        <rect x="46" y="74" width="68" height="46" rx="20" fill="#F7FAFC" stroke="#BCCCDC" stroke-width="2"/>
-        <circle cx="80" cy="96" r="9" fill="#2CB1A5"/>
-        <rect x="36" y="22" width="88" height="62" rx="28" fill="#FFFFFF" stroke="#BCCCDC" stroke-width="2"/>
-        <rect x="48" y="36" width="64" height="34" rx="16" fill="#102A43"/>
-        <circle cx="66" cy="53" r="7" fill="#5FC7E8"/>
-        <circle cx="94" cy="53" r="7" fill="#5FC7E8"/>
-        <path d="M70 64 Q80 70 90 64" stroke="#5FC7E8" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-        <rect x="28" y="44" width="10" height="20" rx="5" fill="#2CB1A5"/>
-        <rect x="122" y="44" width="10" height="20" rx="5" fill="#2CB1A5"/>
-        <path d="M124 82 C 140 70, 146 52, 138 38 C 128 50, 122 66, 124 82 Z" fill="#5FAE77"/>
-        <line x1="124" y1="82" x2="136" y2="46" stroke="#2F7D4F" stroke-width="1.5"/>
-      </svg>
-      <p class="mascot-caption">Smarter insights.<br>Greener tomorrow.</p>
     </section>
 
     <section class="card" style="padding: 22px;" aria-labelledby="suggested-questions-heading">
@@ -90,8 +74,9 @@
     <div id="assistant-status-notice" class="notice notice-warning is-hidden" style="margin: 14px 20px 0;" role="status" aria-live="polite"></div>
 
     <div id="chat-messages" class="chat-messages" aria-live="polite">
-      <div class="chat-bubble-row is-assistant">
-        <span class="chat-sender">Omi AI Assistant</span>
+      <div class="chat-bubble-row is-assistant has-avatar">
+        <img class="chat-avatar" src="{{ url_for('static', filename=mascot_image) }}" alt="" width="32" height="32">
+        <span class="chat-sender">Omi AI</span>
         <div class="chat-bubble">Hi, I'm Omi. Ask me how temperature or rainfall has changed in Lagos or Edo — for example, "How has rainfall changed in Lagos since 2001?" — or tap the microphone and ask out loud.</div>
       </div>
     </div>
@@ -125,6 +110,14 @@
       </button>
     </form>
   </section>
+  <!-- Right column: Omi mascot -->
+  <aside class="card mascot-panel" aria-label="Omi">
+    <div class="mascot-halo">
+      <img src="{{ url_for('static', filename=mascot_image) }}" alt="Omi, the Omi AI mascot" class="mascot-img">
+    </div>
+    <p class="mascot-caption">Smarter insights.<br>Greener tomorrow.</p>
+    <p class="mascot-sub">Hi, I'm Omi. I analyse real NASA data and explain what it means.</p>
+  </aside>
 </div>
 {% endblock %}
 
