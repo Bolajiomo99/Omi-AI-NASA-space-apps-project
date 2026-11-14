@@ -1,24 +1,139 @@
-
 {% extends "base.html" %}
+{% set active_page = 'settings' %}
 
-{% block title %}Settings | Omi AI{% endblock %}
+{% block title %}Settings — Omi AI{% endblock %}
+{% block page_title %}Workspace Settings{% endblock %}
 
 {% block content %}
+<div id="settings-root" data-settings-endpoint="/api/settings" style="display: flex; flex-direction: column; gap: 24px;">
 
-<h1>Settings</h1>
+  <div id="settings-feedback-banner" class="notice is-hidden" role="status" aria-live="polite"></div>
 
-<section class="panel">
+  <!-- Appearance Preference -->
+  <section class="card" aria-labelledby="appearance-heading">
+    <div class="card-header">
+      <div>
+        <h2 id="appearance-heading" style="font-size: 1.0625rem;">Appearance</h2>
+        <p style="font-size: 0.8125rem;">Choose between light and dark workspace themes. Saved automatically in your browser.</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="theme-choice-grid" role="group" aria-label="Color theme preference">
+        <button type="button" class="theme-choice-btn" data-set-theme="light">
+          <div>
+            <div style="font-family: var(--font-display); font-weight: 700;">Light Appearance</div>
+            <div style="font-size: 0.8125rem; color: var(--text-muted);">Off-white canvas with crisp navy typography</div>
+          </div>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </button>
 
-    <label>
-        <input type="checkbox" id="dark-mode">
-        Enable dark appearance
-    </label>
+        <button type="button" class="theme-choice-btn" data-set-theme="dark">
+          <div>
+            <div style="font-family: var(--font-display); font-weight: 700;">Dark Appearance</div>
+            <div style="font-size: 0.8125rem; color: var(--text-muted);">Deep marine navy surfaces for low-light analysis</div>
+          </div>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </section>
 
-    <p class="muted">
-        Notification, privacy and account preferences
-        will be connected when persistent settings are implemented.
-    </p>
+  <!-- Workspace Preferences & Default Study Regions -->
+  <form id="settings-form" style="display: flex; flex-direction: column; gap: 24px;">
+    <section class="card" aria-labelledby="workspace-prefs-heading">
+      <div class="card-header">
+        <div>
+          <h2 id="workspace-prefs-heading" style="font-size: 1.0625rem;">Workspace &amp; Analysis Preferences</h2>
+          <p style="font-size: 0.8125rem;">Default units and statistical display thresholds used during dataset configuration.</p>
+        </div>
+      </div>
 
-</section>
+      <div class="card-body form-grid">
+        <div class="form-field">
+          <label for="pref-temp-unit" class="form-label">Default Temperature Unit</label>
+          <select id="pref-temp-unit" name="temp_unit" class="form-select">
+            <option value="°C">Degrees Celsius (°C)</option>
+            <option value="K">Kelvin (K)</option>
+          </select>
+        </div>
 
+        <div class="form-field">
+          <label for="pref-rain-unit" class="form-label">Default Rainfall Unit</label>
+          <select id="pref-rain-unit" name="rain_unit" class="form-select">
+            <option value="mm">Millimetres (mm)</option>
+            <option value="mm/day">Millimetres per day (mm/day)</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="pref-default-region" class="form-label">Default Study Region</label>
+          <select id="pref-default-region" name="default_region" class="form-select">
+            <option value="lagos">Lagos State (South-West Nigeria)</option>
+            <option value="edo">Edo State (South-South Nigeria)</option>
+            <option value="both">Compare Lagos &amp; Edo</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="pref-alpha" class="form-label">Significance Level (&alpha;)</label>
+          <select id="pref-alpha" name="alpha" class="form-select">
+            <option value="0.05">0.05 (95% confidence)</option>
+            <option value="0.01">0.01 (99% confidence)</option>
+            <option value="0.10">0.10 (90% confidence)</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Data and Privacy Information -->
+    <section class="card" aria-labelledby="privacy-heading">
+      <div class="card-header">
+        <div>
+          <h2 id="privacy-heading" style="font-size: 1.0625rem;">Data &amp; Privacy</h2>
+          <p style="font-size: 0.8125rem;">How Omi AI handles CSV uploads, browser storage, and regional queries.</p>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="settings-row">
+          <div>
+            <div style="font-family: var(--font-display); font-weight: 600; margin-bottom: 4px;">CSV Header Preview</div>
+            <p style="font-size: 0.875rem;">Column headers and the first 5 preview rows are read locally in your browser before you submit a file to the Flask backend.</p>
+          </div>
+        </div>
+
+        <div class="settings-row">
+          <div>
+            <div style="font-family: var(--font-display); font-weight: 600; margin-bottom: 4px;">Backend Dataset Processing</div>
+            <p style="font-size: 0.875rem;">Submitted CSV datasets are sent directly to your Flask server's upload and statistical processing routes; no third-party telemetry is injected.</p>
+          </div>
+        </div>
+
+        <div class="settings-row">
+          <div>
+            <div style="font-family: var(--font-display); font-weight: 600; margin-bottom: 4px;">Reset Browser Preferences</div>
+            <p style="font-size: 0.875rem;">Clear saved theme, unit, and default region preferences stored in localStorage.</p>
+          </div>
+          <button type="button" id="reset-prefs-btn" class="btn btn-danger-ghost btn-sm">Clear Local Preferences</button>
+        </div>
+      </div>
+    </section>
+
+    <div style="display: flex; justify-content: flex-end; gap: 12px;">
+      <button type="submit" class="btn btn-primary">Save Preferences</button>
+    </div>
+  </form>
+</div>
 {% endblock %}

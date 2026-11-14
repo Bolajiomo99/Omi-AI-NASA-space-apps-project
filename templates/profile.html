@@ -1,17 +1,131 @@
-
 {% extends "base.html" %}
+{% set active_page = 'profile' %}
 
-{% block title %}Profile | Omi AI{% endblock %}
+{% block title %}My Profile — Omi AI{% endblock %}
+{% block page_title %}Researcher Profile{% endblock %}
 
 {% block content %}
+<div id="profile-root" data-profile-endpoint="/api/profile">
+  <!-- Profile Identity Header -->
+  <section class="card profile-header-card">
+    <div class="profile-identity">
+      <div id="profile-avatar-circle" class="avatar-circle" aria-hidden="true">
+        {{ user.initials if user and user.initials else 'DR' }}
+      </div>
+      <div>
+        <p class="kicker-text" style="margin-bottom: 4px;">Researcher Account</p>
+        <h1 id="profile-display-name" style="font-size: 1.5rem; margin-bottom: 4px;">
+          {{ user.name if user and user.name else 'Dr. Researcher' }}
+        </h1>
+        <div class="meta-line">
+          <span id="profile-display-email">{{ user.email if user and user.email else 'researcher@omi-ai.org' }}</span>
+          <span class="meta-sep" aria-hidden="true">·</span>
+          <span>{{ user.role if user and user.role else 'Environmental Analyst' }}</span>
+        </div>
+      </div>
+    </div>
 
-<h1>My Profile</h1>
+    <div class="meta-line">
+      <span>Account status: {{ user.status if user and user.status else 'Workspace Ready' }}</span>
+    </div>
+  </section>
 
-<section class="panel">
-    <p>
-        Your personal profile information will appear here
-        after account authentication is implemented.
-    </p>
-</section>
+  <div id="profile-feedback-banner" class="notice is-hidden" style="margin-top: 20px;" role="status" aria-live="polite"></div>
 
+  <form id="profile-form" style="display: flex; flex-direction: column; gap: 24px; margin-top: 24px;">
+    <!-- Account Information -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h2 style="font-size: 1.0625rem;">Account Information</h2>
+          <p style="font-size: 0.8125rem;">Ready for Flask authentication and user model persistence.</p>
+        </div>
+      </div>
+      <div class="card-body form-grid">
+        <div class="form-field">
+          <label for="profile-name-input" class="form-label">Full Name</label>
+          <input id="profile-name-input" name="name" type="text" class="form-input" value="{{ user.name if user and user.name else 'Dr. Researcher' }}" required>
+        </div>
+
+        <div class="form-field">
+          <label for="profile-email-input" class="form-label">Email Address</label>
+          <input id="profile-email-input" name="email" type="email" class="form-input" value="{{ user.email if user and user.email else 'researcher@omi-ai.org' }}" placeholder="researcher@institution.org" required>
+        </div>
+
+        <div class="form-field">
+          <label for="profile-affiliation-input" class="form-label">Institution / Team</label>
+          <input id="profile-affiliation-input" name="affiliation" type="text" class="form-input" value="{{ user.affiliation if user and user.affiliation else 'Omi AI Climate Research Group' }}">
+        </div>
+
+        <div class="form-field">
+          <label for="profile-role-input" class="form-label">Research Role</label>
+          <input id="profile-role-input" name="role" type="text" class="form-input" value="{{ user.role if user and user.role else 'Environmental Analyst' }}">
+        </div>
+      </div>
+    </section>
+
+    <!-- Research Interests -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h2 style="font-size: 1.0625rem;">Research Interests</h2>
+          <p style="font-size: 0.8125rem;">Select the environmental themes you investigate most often.</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="checkbox-grid">
+          <label class="check-option">
+            <input type="checkbox" name="interests" value="urban_heat" checked>
+            <span>Urban Heat Island &amp; Surface Temperature</span>
+          </label>
+          <label class="check-option">
+            <input type="checkbox" name="interests" value="coastal_rainfall" checked>
+            <span>Coastal Precipitation &amp; Flood Signals</span>
+          </label>
+          <label class="check-option">
+            <input type="checkbox" name="interests" value="forest_hydrology">
+            <span>Forest Transition &amp; Monsoon Variability</span>
+          </label>
+          <label class="check-option">
+            <input type="checkbox" name="interests" value="mann_kendall" checked>
+            <span>Non-Parametric Trend Detection</span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Study Regions -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h2 style="font-size: 1.0625rem;">Assigned Study Regions</h2>
+          <p style="font-size: 0.8125rem;">Primary geographic corridors linked to your workspace.</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="region-cards-grid">
+          <label class="check-option" style="justify-content: space-between;">
+            <span style="display: flex; align-items: center; gap: 10px;">
+              <input type="checkbox" name="study_regions" value="lagos" checked>
+              <span><strong>Lagos State</strong> · South-West Nigeria</span>
+            </span>
+            <span class="mono-value" style="font-size: 0.75rem; color: var(--text-muted);">6.5244° N, 3.3792° E</span>
+          </label>
+
+          <label class="check-option" style="justify-content: space-between;">
+            <span style="display: flex; align-items: center; gap: 10px;">
+              <input type="checkbox" name="study_regions" value="edo" checked>
+              <span><strong>Edo State</strong> · South-South Nigeria</span>
+            </span>
+            <span class="mono-value" style="font-size: 0.75rem; color: var(--text-muted);">6.5438° N, 5.8987° E</span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <div style="display: flex; justify-content: flex-end; gap: 12px;">
+      <button type="submit" class="btn btn-primary">Save Profile Changes</button>
+    </div>
+  </form>
+</div>
 {% endblock %}

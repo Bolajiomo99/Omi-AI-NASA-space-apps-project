@@ -11,7 +11,7 @@ def create_app():
 
     @app.route("/")
     def landing():
-        return render_template("landingpage.html")
+        return render_template("landing.html")
 
     @app.route("/dashboard")
     def dashboard():
