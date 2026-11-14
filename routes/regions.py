@@ -1,7 +1,7 @@
 from flask import Blueprint, current_app, jsonify, request
 
 from services.analysis_service import run_comparison, run_investigation
-from services.nasa_service import NasaDataError
+from services.nasa_service import NasaDataError, available_sources
 
 regions_bp = Blueprint("regions", __name__)
 
@@ -45,7 +45,13 @@ def get_coverage():
         "min_years": cfg["MIN_YEARS"],
         "dataset": "NASA POWER Monthly & Annual API (MERRA-2 based)",
         "temporal_resolution": "Monthly",
+        "sources": available_sources(),
     })
+
+
+@regions_bp.route("/sources", methods=["GET"])
+def get_sources():
+    return jsonify(available_sources())
 
 
 @regions_bp.route("/data", methods=["GET"])
@@ -59,6 +65,7 @@ def get_data():
             args.get("start"),
             args.get("end"),
             detail="simple",
+            source=args.get("source", "power"),
         )
     except ValueError as error:
         return _error(error)
@@ -88,6 +95,7 @@ def analyze():
             data.get("end_year"),
             alpha=data.get("alpha"),
             detail=data.get("detail", "detailed"),
+            source=data.get("source", "power"),
         )
     except ValueError as error:
         return _error(error)
@@ -110,6 +118,7 @@ def compare():
             regions=regions,
             alpha=data.get("alpha"),
             detail=data.get("detail", "detailed"),
+            source=data.get("source", "power"),
         )
     except ValueError as error:
         return _error(error)

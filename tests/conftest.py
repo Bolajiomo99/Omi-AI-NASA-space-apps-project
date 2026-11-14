@@ -29,9 +29,30 @@ def fake_power_values(parameter, region_id, start=1981, end=2025):
     return values
 
 
+def fake_giovanni_csv(lat, lon, time_start, time_end, dataset):
+    """Giovanni-style CSV: 13 metadata lines, a header row, then daily rows."""
+    import pandas as pd
+
+    header = [
+        "prod_name,GPM_3IMERGDF_07", f"param_name,{dataset}", "unit,mm/day",
+        "begin_time,x", "end_time,x", f"lat,{lat}", f"lon,{lon}",
+        "request_lat,x", "request_lon,x", "request_time,x", "fill_value,-9999.9",
+        "time_resolution,daily", "spatial_resolution,0.1",
+    ]
+    rows = ["Timestamp (UTC),Data"]
+    wetter = 0.002 if lat < 6.53 else -0.001
+    for day in pd.date_range(time_start[:10], time_end[:10], freq="D"):
+        season = math.sin((day.month - 1) / 12 * 2 * math.pi)
+        rows.append(f"{day:%Y-%m-%d}T00:00:00,{max(0.0, 4 + 3 * season + wetter * (day.year - 2001) * 100):.3f}")
+    rows[50] = rows[50].split(",")[0] + ",-9999.9"  # one fill value
+    return "\n".join(header + rows)
+
+
 @pytest.fixture
 def app(tmp_path, monkeypatch):
     calls = []
+    for name in ("EARTHDATA_TOKEN", "EARTHDATA_USERNAME", "EARTHDATA_PASSWORD"):
+        monkeypatch.delenv(name, raising=False)
 
     def fake_request(region, parameter, start, end):
         calls.append((region["id"], parameter))

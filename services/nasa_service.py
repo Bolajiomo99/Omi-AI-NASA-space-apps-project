@@ -9,6 +9,11 @@ Variables used:
   * PRECTOTCORR  Bias-corrected precipitation, monthly mean rate, mm/day
                  (converted here to a monthly total in mm)
 
+Optional second rainfall source: NASA GPM IMERG Final Run daily
+(GPM_3IMERGDF_07, 0.1°), retrieved through the NASA Giovanni time-series
+API (data_ingestion/nasa_client.py). Enabled when EARTHDATA_TOKEN (or an
+Earthdata username/password) is configured.
+
 Each region/parameter is fetched once for the full supported record and
 cached on disk (data/processed) and in memory, so later investigations are
 instant and a demo keeps working if the API is briefly unavailable.
@@ -31,7 +36,38 @@ _lock = threading.Lock()
 
 
 class NasaDataError(Exception):
-    """Raised when NASA POWER data cannot be retrieved or is invalid."""
+    """Raised when NASA data cannot be retrieved or is invalid."""
+
+
+class SourceUnavailable(ValueError):
+    """Raised when a data source is not configured or does not fit the request."""
+
+
+def available_sources():
+    from data_ingestion.nasa_client import has_credentials
+
+    sources = []
+    for source in current_app.config["SOURCES"].values():
+        item = dict(source)
+        item["available"] = (not source["requires_login"]) or has_credentials()
+        sources.append(item)
+    return sources
+
+
+def get_source(source_id, variable_id):
+    source_id = str(source_id or "power").lower()
+    sources = {s["id"]: s for s in available_sources()}
+    source = sources.get(source_id)
+    if not source:
+        raise SourceUnavailable(f"Unknown data source '{source_id}'. Supported: {', '.join(sources)}.")
+    if variable_id not in source["variables"]:
+        raise SourceUnavailable(f"{source['name']} only provides: {', '.join(source['variables'])}.")
+    if not source["available"]:
+        raise SourceUnavailable(
+            f"{source['name']} needs an Earthdata Login token. Ask the admin to set "
+            "EARTHDATA_TOKEN on the server, or use NASA POWER."
+        )
+    return source
 
 
 def get_region(region_id):
@@ -54,8 +90,24 @@ def get_variable(variable_id):
     return variable
 
 
-def source_metadata(region, variable):
+def source_metadata(region, variable, source_id="power"):
     cfg = current_app.config
+    if source_id == "imerg":
+        from data_ingestion.rainfall import DATASET
+
+        return {
+            "dataset": "NASA GPM IMERG Final Run, daily (GPM_3IMERGDF v07) via NASA Giovanni",
+            "underlying_product": "NASA Global Precipitation Measurement (GPM) satellite constellation",
+            "parameter": DATASET,
+            "parameter_name": "Daily precipitation",
+            "native_unit": "mm/day",
+            "spatial_resolution": "0.1° x 0.1° grid cell (~11 km)",
+            "temporal_resolution": "Daily (summed to monthly totals)",
+            "location": {"latitude": region["latitude"], "longitude": region["longitude"]},
+            "coverage": {"start_year": cfg["SOURCES"]["imerg"]["start_year"], "end_year": cfg["DATA_END_YEAR"]},
+            "endpoint": "https://api.giovanni.earthdata.nasa.gov/timeseries",
+            "documentation": "https://gpm.nasa.gov/data/imerg",
+        }
     return {
         "dataset": "NASA POWER Monthly & Annual API (v2)",
         "underlying_product": "NASA GMAO MERRA-2 reanalysis",
@@ -122,16 +174,63 @@ def _request_power(region, parameter, start, end):
     }
 
 
-def _load_raw(region, variable):
+def _request_imerg(region, start, end):
+    from data_ingestion.nasa_client import GiovanniError, call_time_series, parse_time_series
+    from data_ingestion.rainfall import DATASET
+
+    try:
+        text = call_time_series(
+            region["latitude"], region["longitude"],
+            f"{start}-01-01T00:00:00", f"{end}-12-31T23:59:59", DATASET,
+        )
+        _, rows = parse_time_series(text)
+    except GiovanniError as error:
+        raise NasaDataError(str(error)) from error
+
+    values = {}
+    for stamp, value in rows:
+        day = pd.to_datetime(stamp, errors="coerce")
+        if pd.isna(day):
+            continue
+        values[day.strftime("%Y%m%d")] = value
+    if not values:
+        raise NasaDataError("NASA Giovanni returned no usable daily values.")
+    return {
+        "retrieved_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "values": values,
+    }
+
+
+def parse_daily_to_monthly(values):
+    """Sum daily mm/day values into monthly totals; incomplete months -> missing."""
+    frame = pd.DataFrame(
+        [(pd.to_datetime(k, format="%Y%m%d", errors="coerce"), v) for k, v in values.items()],
+        columns=["day", "value"],
+    ).dropna(subset=["day"])
+    if frame.empty:
+        return pd.DataFrame(columns=["date", "value"])
+    frame["value"] = pd.to_numeric(frame["value"], errors="coerce")
+    frame["date"] = frame["day"].dt.to_period("M").dt.to_timestamp()
+    grouped = frame.groupby("date")["value"]
+    totals = grouped.sum(min_count=1)
+    counts = grouped.count()
+    days = pd.Series(totals.index.days_in_month, index=totals.index)
+    totals[counts < days] = float("nan")
+    return totals.rename("value").reset_index().sort_values("date").reset_index(drop=True)
+
+
+def _load_raw(region, variable, source_id="power"):
     cfg = current_app.config
-    start, end = cfg["DATA_START_YEAR"], cfg["DATA_END_YEAR"]
-    key = (region["id"], variable["parameter"], start, end)
+    start = cfg["SOURCES"][source_id]["start_year"] if source_id != "power" else cfg["DATA_START_YEAR"]
+    end = cfg["DATA_END_YEAR"]
+    parameter = "IMERG" if source_id == "imerg" else variable["parameter"]
+    key = (region["id"], parameter, start, end)
 
     with _lock:
         if key in _memory_cache:
             return _memory_cache[key]
 
-        path = _cache_path(region["id"], variable["parameter"], start, end)
+        path = _cache_path(region["id"], parameter, start, end)
         raw = None
         if os.path.exists(path):
             try:
@@ -141,7 +240,10 @@ def _load_raw(region, variable):
                 raw = None
 
         if raw is None:
-            raw = _request_power(region, variable["parameter"], start, end)
+            if source_id == "imerg":
+                raw = _request_imerg(region, start, end)
+            else:
+                raw = _request_power(region, variable["parameter"], start, end)
             try:
                 with open(path, "w", encoding="utf-8") as handle:
                     json.dump(raw, handle)
@@ -183,28 +285,34 @@ def parse_power_monthly(values, parameter):
     return frame.sort_values("date").reset_index(drop=True)
 
 
-def fetch_environmental_data(region_id, variable_id, start_year, end_year):
+def fetch_environmental_data(region_id, variable_id, start_year, end_year, source_id="power"):
     """Return monthly records for a region/variable within [start_year, end_year].
 
     Returns a dict with the monthly DataFrame and provenance metadata.
     """
     region = get_region(region_id)
     variable = get_variable(variable_id)
-    raw = _load_raw(region, variable)
+    source = get_source(source_id, variable["id"])
+    raw = _load_raw(region, variable, source["id"])
 
-    frame = parse_power_monthly(raw["values"], variable["parameter"])
+    if source["id"] == "imerg":
+        frame = parse_daily_to_monthly(raw["values"])
+    else:
+        frame = parse_power_monthly(raw["values"], variable["parameter"])
     if frame.empty:
-        raise NasaDataError("No valid NASA POWER records were found.")
+        raise NasaDataError(f"No valid {source['name']} records were found.")
 
     mask = (frame["date"].dt.year >= start_year) & (frame["date"].dt.year <= end_year)
     frame = frame[mask].reset_index(drop=True)
 
-    metadata = source_metadata(region, variable)
+    metadata = source_metadata(region, variable, source["id"])
     metadata["retrieved_at"] = raw.get("retrieved_at")
+    metadata["source_id"] = source["id"]
 
     return {
         "region": region,
         "variable": variable,
+        "source_id": source["id"],
         "monthly": frame,
         "source": metadata,
     }

@@ -51,9 +51,11 @@ def _alpha(alpha):
     return value
 
 
-def resolve_period(start_year=None, end_year=None):
+def resolve_period(start_year=None, end_year=None, source_id="power"):
     cfg = current_app.config
-    first, last = cfg["DATA_START_YEAR"], cfg["DATA_END_YEAR"]
+    source = cfg["SOURCES"].get(source_id) or cfg["SOURCES"]["power"]
+    first = max(cfg["DATA_START_YEAR"], source["start_year"])
+    last = cfg["DATA_END_YEAR"]
     try:
         start = int(start_year) if start_year not in (None, "") else first
         end = int(end_year) if end_year not in (None, "") else last
@@ -64,7 +66,7 @@ def resolve_period(start_year=None, end_year=None):
         start, end = end, start
     if start < first or end > last:
         raise ValueError(
-            f"NASA POWER data for this tool covers {first}–{last}. "
+            f"{source['name']} data for this tool covers {first}–{last}. "
             f"Please choose years inside that range."
         )
     if end - start + 1 < cfg["MIN_YEARS"]:
@@ -85,12 +87,13 @@ def _annual(monthly, aggregation):
 
 
 def run_investigation(region_id, variable_id, start_year=None, end_year=None,
-                      alpha=None, detail="detailed"):
+                      alpha=None, detail="detailed", source="power"):
     alpha = _alpha(alpha)
-    start, end = resolve_period(start_year, end_year)
+    source = str(source or "power").lower()
+    start, end = resolve_period(start_year, end_year, source)
     detail = detail if detail in DETAIL_LEVELS else "detailed"
 
-    fetched = fetch_environmental_data(region_id, variable_id, start, end)
+    fetched = fetch_environmental_data(region_id, variable_id, start, end, source)
     region, variable, monthly = fetched["region"], fetched["variable"], fetched["monthly"]
 
     total_months = (end - start + 1) * 12
@@ -165,7 +168,7 @@ def run_investigation(region_id, variable_id, start_year=None, end_year=None,
             "complete_years_used": int(len(annual)),
         },
         "methodology": [
-            "Monthly NASA POWER values are aggregated to one value per complete year "
+            f"Monthly {'GPM IMERG' if fetched['source_id'] == 'imerg' else 'NASA POWER'} values are aggregated to one value per complete year "
             "(mean for temperature, total for rainfall) to remove the seasonal cycle.",
             "Linear regression (ordinary least squares) estimates the average rate of change "
             f"with a {int((1 - alpha) * 100)}% confidence interval.",
@@ -175,7 +178,7 @@ def run_investigation(region_id, variable_id, start_year=None, end_year=None,
             f"for a monotonic trend at the {alpha:g} significance level.",
             "A Seasonal Mann-Kendall test on the monthly series is reported as a robustness check.",
         ],
-        "limitations": _limitations(variable),
+        "limitations": _limitations(variable, fetched["source_id"]),
         "alpha": alpha,
         "detail": detail,
     }
@@ -183,10 +186,19 @@ def run_investigation(region_id, variable_id, start_year=None, end_year=None,
     return result
 
 
-def _limitations(variable):
+def _limitations(variable, source_id="power"):
+    if source_id == "imerg":
+        first = (
+            "GPM IMERG values are satellite-based precipitation estimates for a ~11 km grid cell, "
+            "calibrated with rain gauges; they are not measurements from a single gauge."
+        )
+    else:
+        first = (
+            "NASA POWER values are model-based reanalysis (MERRA-2) for a ~50 km grid cell, "
+            "not measurements from a single weather station, so they smooth local extremes."
+        )
     items = [
-        "NASA POWER values are model-based reanalysis (MERRA-2) for a ~50 km grid cell, "
-        "not measurements from a single weather station, so they smooth local extremes.",
+        first,
         "One representative point is used per region; conditions vary within a state.",
         "A statistical trend shows that a change was observed. It does not prove what caused it.",
         "Statistical significance is not the same as practical importance; look at the size "
@@ -201,7 +213,7 @@ def _limitations(variable):
 
 
 def run_comparison(variable_id, start_year=None, end_year=None, regions=None,
-                   alpha=None, detail="detailed"):
+                   alpha=None, detail="detailed", source="power"):
     regions = regions or list(current_app.config["REGIONS"].keys())[:2]
     if len(regions) != 2:
         raise ValueError("Comparison needs exactly two regions.")
@@ -210,8 +222,8 @@ def run_comparison(variable_id, start_year=None, end_year=None, regions=None,
     for region_id in regions:
         get_region(region_id)
 
-    first = run_investigation(regions[0], variable_id, start_year, end_year, alpha, detail)
-    second = run_investigation(regions[1], variable_id, start_year, end_year, alpha, detail)
+    first = run_investigation(regions[0], variable_id, start_year, end_year, alpha, detail, source)
+    second = run_investigation(regions[1], variable_id, start_year, end_year, alpha, detail, source)
 
     comparison = summarise_comparison(
         first["region"]["name"], first["trend"],
@@ -226,6 +238,7 @@ def run_comparison(variable_id, start_year=None, end_year=None, regions=None,
         "variable": first["variable"],
         "period": first["period"],
         "units": first["units"],
+        "source": first["source"],
         "regions": [first, second],
         "comparison": comparison,
         "alpha": first["alpha"],

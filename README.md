@@ -27,6 +27,14 @@ You can also upload your own CSV time series on **Analyse a Dataset**.
 
 Each region/variable is downloaded once and cached in `data/processed/` (git-ignored).
 
+**Optional second rainfall source: NASA GPM IMERG** (the data team's Giovanni integration,
+`data_ingestion/nasa_client.py`). This is IMERG Final Run daily data (`GPM_3IMERGDF_07`, 0.1° ≈ 11 km,
+satellite-based, from 2001), retrieved from the NASA Giovanni time-series API and summed into monthly
+and yearly totals. Set `EARTHDATA_TOKEN` to enable it. You can then pick it in the dashboard's
+"Data source" menu, or ask the assistant for "GPM satellite rainfall". Without a token the option is
+shown as unavailable and everything else works with NASA POWER. To test the client on its own, run
+`python -m data_ingestion.nasa_client`.
+
 ## Statistics
 
 Monthly values are aggregated to one value per complete year (mean for
@@ -91,10 +99,10 @@ The tests mock NASA POWER, so they run offline.
 |---|---|---|
 | GET | `/api/regions` | Supported regions with coordinates |
 | GET | `/api/variables` | Supported variables, units and NASA parameters |
-| GET | `/api/coverage` | Available years |
+| GET | `/api/coverage`, `/api/sources` | Available years and data sources (POWER, IMERG) |
 | GET | `/api/data?region=&variable=&start=&end=` | Monthly + annual records |
-| POST | `/api/analyze` | `{region, variable, start_year, end_year, alpha?, detail?}` → full analysis |
-| POST | `/api/compare` | `{variable, start_year, end_year, regions?, alpha?, detail?}` → both regions + comparison |
+| POST | `/api/analyze` | `{region, variable, start_year, end_year, source?, alpha?, detail?}` → full analysis |
+| POST | `/api/compare` | `{variable, start_year, end_year, regions?, source?, alpha?, detail?}` → both regions + comparison |
 | POST | `/api/assistant/chat` | `{question, context?, detail?, history?}` → answer, params, analysis |
 | POST | `/api/assistant/voice` | Same as chat, plus a `speech` field for reading aloud |
 | POST | `/api/uploads/analyze` | CSV upload (form fields `file`, `date_column`, `value_column`, `unit`) |
@@ -113,7 +121,8 @@ The tests mock NASA POWER, so they run offline.
 app.py                     Flask app, page routes, JSON error handling
 config.py                  Regions, variables, NASA POWER settings
 routes/                    API blueprints
-services/nasa_service.py   NASA POWER retrieval, parsing, caching
+services/nasa_service.py   NASA POWER + GPM IMERG retrieval, parsing, caching
+data_ingestion/            Giovanni (GPM IMERG) client and request settings
 services/analysis_service.py  Shared investigation/comparison engine
 services/explain.py        Grounded plain-language explanations
 services/ai_service.py     Text/voice assistant (parsing, follow-ups, Gemini)

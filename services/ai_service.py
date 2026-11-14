@@ -126,6 +126,12 @@ def parse_message(text):
     if variables:
         found["variable"] = variables[0]
 
+    if _contains(lowered, ["imerg", "gpm", "satellite"]):
+        found["source"] = "imerg"
+        found.setdefault("variable", "rainfall")
+    elif _contains(lowered, ["nasa power", "merra"]):
+        found["source"] = "power"
+
     match = re.search(r"\b(?:last|past|previous)\s+(\d{1,2})\s+years?\b", lowered)
     words_to_num = {"five": 5, "ten": 10, "fifteen": 15, "twenty": 20, "thirty": 30, "forty": 40}
     match_word = re.search(r"\b(?:last|past|previous)\s+(" + "|".join(words_to_num) + r")\s+years?\b", lowered)
@@ -153,13 +159,14 @@ def parse_message(text):
 
 def _clamp_period(params):
     cfg = current_app.config
-    first, last = cfg["DATA_START_YEAR"], cfg["DATA_END_YEAR"]
+    source = cfg["SOURCES"].get(params.get("source") or "power", cfg["SOURCES"]["power"])
+    first, last = max(cfg["DATA_START_YEAR"], source["start_year"]), cfg["DATA_END_YEAR"]
     notes = []
     if "start_year" in params:
         start, end = params["start_year"], params["end_year"]
         if start < first or end > last:
             notes.append(
-                f"NASA POWER data here covers {first}–{last}, so I used "
+                f"{source['name']} data here covers {first}–{last}, so I used "
                 f"{max(start, first)}–{min(end, last)}."
             )
         start, end = max(start, first), min(end, last)
@@ -292,7 +299,7 @@ def answer_question(question, context=None, detail="detailed", history=None, voi
     detail = detail if detail in DETAIL_LEVELS else "detailed"
     context = context if isinstance(context, dict) else {}
     previous = context.get("params") if isinstance(context.get("params"), dict) else {}
-    params = {k: previous[k] for k in ("regions", "variable", "start_year", "end_year", "compare") if k in previous}
+    params = {k: previous[k] for k in ("regions", "variable", "start_year", "end_year", "compare", "source") if k in previous}
     awaiting = context.get("awaiting")
     has_result = bool(context.get("has_result"))
     cfg = current_app.config
@@ -325,6 +332,8 @@ def answer_question(question, context=None, detail="detailed", history=None, voi
     # If the user names a new variable or region, start from fresh period choices
     # only when they did not give one; keep everything else.
     params.update(found)
+    if params.get("source") == "imerg" and params.get("variable") == "temperature":
+        params["source"] = "power"  # IMERG only measures rainfall
     notes = _clamp_period(params)
 
     # General method questions (no investigation terms): glossary / model.
@@ -379,11 +388,13 @@ def answer_question(question, context=None, detail="detailed", history=None, voi
     # Everything is known: run the shared analysis engine.
     if params.get("compare"):
         result = run_comparison(params["variable"], params["start_year"], params["end_year"],
-                                params["regions"], alpha=alpha, detail=detail)
+                                params["regions"], alpha=alpha, detail=detail,
+                                source=params.get("source", "power"))
     else:
         result = run_investigation(params["regions"][0], params["variable"],
                                    params["start_year"], params["end_year"],
-                                   alpha=alpha, detail=detail)
+                                   alpha=alpha, detail=detail,
+                                   source=params.get("source", "power"))
 
     is_followup = has_result and not new_investigation_terms
     if is_followup:
@@ -391,7 +402,7 @@ def answer_question(question, context=None, detail="detailed", history=None, voi
     else:
         fallback = result["explanation"]
         intro = (
-            f"Here is what NASA POWER data shows for {params['variable']} in "
+            f"Here is what {current_app.config['SOURCES'].get(params.get('source') or 'power', {}).get('name', 'NASA')} data shows for {params['variable']} in "
             f"{_regions_label(params)}, {params['start_year']}–{params['end_year']}. "
         )
         fallback = intro + fallback

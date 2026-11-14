@@ -32,8 +32,8 @@ class Config:
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
     GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
-    # Kept for future NASA products that need an Earthdata login.
-    # NASA POWER (used today) needs no authentication.
+    # Earthdata Login: only needed for the optional GPM IMERG rainfall source
+    # (NASA Giovanni). NASA POWER, the default source, needs no login.
     EARTHDATA_TOKEN = os.getenv("EARTHDATA_TOKEN")
 
     # --- NASA POWER ----------------------------------------------------------
@@ -47,6 +47,23 @@ class Config:
     # publishes complete years, so the last supported year is last year.
     DATA_START_YEAR = 1981
     DATA_END_YEAR = int(os.getenv("DATA_END_YEAR", str(date.today().year - 1)))
+
+    SOURCES = {
+        "power": {
+            "id": "power",
+            "name": "NASA POWER (MERRA-2)",
+            "variables": ["temperature", "rainfall"],
+            "start_year": 1981,
+            "requires_login": False,
+        },
+        "imerg": {
+            "id": "imerg",
+            "name": "NASA GPM IMERG (satellite rainfall)",
+            "variables": ["rainfall"],
+            "start_year": 2001,
+            "requires_login": True,
+        },
+    }
 
     DEFAULT_ALPHA = 0.05
     MIN_YEARS = 5

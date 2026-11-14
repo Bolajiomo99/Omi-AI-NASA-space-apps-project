@@ -22,6 +22,8 @@
     var startInput = document.getElementById('inv-start');
     var endInput = document.getElementById('inv-end');
     var detailSelect = document.getElementById('inv-detail');
+    var sourceSelect = document.getElementById('inv-source');
+    var sources = { power: { start_year: 1981, available: true, variables: ['temperature', 'rainfall'], name: 'NASA POWER (MERRA-2)' } };
     var submitBtn = document.getElementById('investigate-btn');
     var coverageNote = document.getElementById('coverage-note');
 
@@ -60,8 +62,43 @@
       return window.OmiUI.getPreferences();
     }
 
+    function sourceInfo() {
+      var id = sourceSelect ? sourceSelect.value : 'power';
+      return sources[id] || sources.power;
+    }
+
+    function firstYear() {
+      return Math.max(coverage.start_year, sourceInfo().start_year || coverage.start_year);
+    }
+
+    function syncSourceOptions() {
+      if (!sourceSelect) return;
+      var variable = variableSelect ? variableSelect.value : 'temperature';
+      Array.prototype.forEach.call(sourceSelect.options, function (opt) {
+        var info = sources[opt.value];
+        var usable = info && info.available && info.variables.indexOf(variable) !== -1;
+        opt.disabled = !usable;
+        var base = info ? info.name : opt.textContent;
+        if (info && !info.available) base += ' — needs Earthdata token';
+        else if (info && info.variables.indexOf(variable) === -1) base += ' — rainfall only';
+        opt.textContent = base;
+      });
+      if (sourceSelect.selectedOptions[0] && sourceSelect.selectedOptions[0].disabled) sourceSelect.value = 'power';
+      var min = firstYear();
+      if (startInput) {
+        startInput.min = min;
+        if (Number(startInput.value) < min) startInput.value = min;
+      }
+      if (endInput) endInput.min = min;
+      if (coverageNote) {
+        coverageNote.textContent = sourceInfo().name + ' records are available from ' + min + ' to ' + coverage.end_year +
+          '. Choose at least ' + coverage.min_years + ' years.';
+      }
+    }
+
     function applyCoverage(data) {
       coverage = data;
+      (data.sources || []).forEach(function (src) { sources[src.id] = src; });
       [startInput, endInput].forEach(function (input) {
         if (!input) return;
         input.min = data.start_year;
@@ -69,18 +106,15 @@
       });
       if (startInput && !startInput.dataset.touched) startInput.value = data.start_year;
       if (endInput && !endInput.dataset.touched) endInput.value = data.end_year;
-      if (coverageNote) {
-        coverageNote.textContent = 'NASA POWER monthly records are available from ' + data.start_year + ' to ' + data.end_year +
-          '. Choose at least ' + data.min_years + ' years.';
-      }
+      syncSourceOptions();
     }
 
     function validate(params) {
       var start = Number(params.start_year);
       var end = Number(params.end_year);
       if (!Number.isInteger(start) || !Number.isInteger(end)) return 'Please enter whole years.';
-      if (start < coverage.start_year || end > coverage.end_year) {
-        return 'Choose years between ' + coverage.start_year + ' and ' + coverage.end_year + '.';
+      if (start < firstYear() || end > coverage.end_year) {
+        return 'Choose years between ' + firstYear() + ' and ' + coverage.end_year + ' for ' + sourceInfo().name + '.';
       }
       if (start > end) return 'The start year must be before the end year.';
       if (end - start + 1 < coverage.min_years) return 'Choose at least ' + coverage.min_years + ' years so a trend can be tested.';
@@ -94,6 +128,7 @@
         start_year: startInput ? Number(startInput.value) : coverage.start_year,
         end_year: endInput ? Number(endInput.value) : coverage.end_year,
         detail: detailSelect ? detailSelect.value : 'detailed',
+        source: sourceSelect ? sourceSelect.value : 'power',
         alpha: prefs().alpha
       };
     }
@@ -130,7 +165,8 @@
       if (sourceBox) sourceBox.innerHTML = R.sourceHtml(result);
 
       document.querySelectorAll('[data-region-status]').forEach(function (el) {
-        el.textContent = 'NASA POWER · MERRA-2';
+        el.textContent = (result.source && result.source.source_id === 'imerg') || (result.regions && result.regions[0].source.source_id === 'imerg')
+          ? 'NASA GPM IMERG' : 'NASA POWER · MERRA-2';
       });
     }
 
@@ -147,6 +183,7 @@
         start_year: params.start_year,
         end_year: params.end_year,
         detail: params.detail,
+        source: params.source,
         alpha: params.alpha
       };
       if (compare) {
@@ -161,7 +198,7 @@
       });
 
       if (submitBtn) submitBtn.disabled = true;
-      setBanner('info', 'Retrieving NASA POWER records and running the trend analysis… (the first request for a region can take a few seconds)');
+      setBanner('info', 'Retrieving ' + sourceInfo().name + ' records and running the trend analysis… (the first request for a region can take a few seconds)');
 
       fetch(compare ? compareEndpoint : analyzeEndpoint, {
         method: 'POST',
@@ -198,6 +235,8 @@
     [startInput, endInput].forEach(function (input) {
       if (input) input.addEventListener('input', function () { input.dataset.touched = '1'; });
     });
+    if (variableSelect) variableSelect.addEventListener('change', syncSourceOptions);
+    if (sourceSelect) sourceSelect.addEventListener('change', syncSourceOptions);
 
     document.querySelectorAll('[data-analyse-region]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -231,7 +270,8 @@
               compare: compare,
               variable: currentParams.variable,
               start_year: currentParams.start_year,
-              end_year: currentParams.end_year
+              end_year: currentParams.end_year,
+              source: currentParams.source
             },
             detail: currentParams.detail
           }));

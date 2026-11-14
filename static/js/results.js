@@ -188,7 +188,7 @@
       (src.retrieved_at ? ' Retrieved ' + esc(src.retrieved_at) + '.' : '') + '</p>' +
       '<p><strong>Method</strong></p>' + list(single.methodology) +
       '<p><strong>Limitations</strong></p>' + list(result.limitations) +
-      '<p class="meta-line">Source documentation: <a href="' + esc(src.documentation) + '" target="_blank" rel="noopener">power.larc.nasa.gov/docs</a></p>';
+      '<p class="meta-line">Source documentation: <a href="' + esc(src.documentation) + '" target="_blank" rel="noopener">' + esc(String(src.documentation || '').replace(/^https?:\/\//, '')) + '</a></p>';
   }
 
   function explanationHtml(text) {
@@ -213,7 +213,7 @@
       '<div class="chat-result-title">' + esc(title(result)) + '</div>' +
       '<div class="kpi-strip kpi-strip-compact">' + kpiHtml(result) + '</div>' +
       '<div class="chat-chart"></div>' +
-      '<div class="chat-result-foot meta-line">Source: NASA POWER (MERRA-2). Dashed line = fitted trend.</div>';
+      '<div class="chat-result-foot meta-line">Source: ' + esc(((isComparison(result) ? result.regions[0] : result).source || {}).dataset || 'NASA') + '. Dashed line = fitted trend.</div>';
     ui().renderChart(container.querySelector('.chat-chart'), chartConfig(result, mode));
   }
 

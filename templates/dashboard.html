@@ -44,7 +44,7 @@
     <div class="card-header">
       <div>
         <h2 id="investigate-heading" style="font-size: 1.0625rem;">Start an Investigation</h2>
-        <p style="font-size: 0.8125rem;" id="coverage-note">Choose a region, variable and period. Data: NASA POWER monthly records.</p>
+        <p style="font-size: 0.8125rem;" id="coverage-note">Choose a region, variable, data source and period.</p>
       </div>
     </div>
     <form id="investigation-form" class="investigation-form" novalidate>
@@ -61,6 +61,13 @@
         <select id="inv-variable" name="variable" class="form-select">
           <option value="temperature">Temperature (°C)</option>
           <option value="rainfall">Rainfall (mm)</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="inv-source" class="form-label">Data source</label>
+        <select id="inv-source" name="source" class="form-select">
+          <option value="power">NASA POWER (MERRA-2)</option>
+          <option value="imerg">NASA GPM IMERG (satellite rainfall)</option>
         </select>
       </div>
       <div class="form-field">
@@ -149,7 +156,7 @@
     <div class="section-row-head">
       <div>
         <h2 id="overview-heading">Investigation Results</h2>
-        <p style="font-size: 0.875rem;">Every figure below is calculated from NASA POWER records by the Omi analysis engine.</p>
+        <p style="font-size: 0.875rem;">Every figure below is calculated from NASA records by the Omi analysis engine.</p>
       </div>
       <div id="overview-active-region" class="meta-line">No investigation run yet</div>
     </div>
