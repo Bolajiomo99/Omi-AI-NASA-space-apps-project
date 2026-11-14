@@ -1,0 +1,21 @@
+[project]
+name = "omi-ai-nasa-space-apps-project"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Emeka-EnergyData", email = "electricmanxo@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "earthaccess>=0.19.0",
+    "python-dotenv>=1.2.4",
+    "requests>=2.34.2",
+]
+
+[project.scripts]
+omi-ai-nasa-space-apps-project = "omi_ai_nasa_space_apps_project:main"
+
+[build-system]
+requires = ["uv_build>=0.12.19,<0.13.0"]
+build-backend = "uv_build"
