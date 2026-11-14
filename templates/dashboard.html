@@ -7,9 +7,10 @@
 {% block content %}
 <div id="dashboard-root"
      data-upload-url="{{ url_for('upload') }}"
-     data-region-endpoint="/api/regions"
-     data-analysis-endpoint="/api/analysis"
-     data-comparison-endpoint="/api/regions/compare">
+     data-assistant-url="{{ url_for('assistant') }}"
+     data-coverage-endpoint="/api/coverage"
+     data-analyze-endpoint="/api/analyze"
+     data-compare-endpoint="/api/compare">
 
   <!-- Welcome Banner -->
   <section class="welcome-banner" aria-labelledby="welcome-heading">
@@ -18,7 +19,7 @@
       <h1 id="welcome-heading">Good day, Researcher.</h1>
       <p class="welcome-banner-sub">Explore environmental patterns and understand how conditions change over time.</p>
       <p class="welcome-banner-note">
-        Investigate historical changes in temperature and rainfall across Nigerian study regions or upload your own environmental time-series CSV file for statistical trend detection.
+        Investigate historical changes in temperature and rainfall in Lagos and Edo using NASA POWER data (1981 onwards), compare the two regions, or upload your own time-series CSV file.
       </p>
     </div>
     <div class="welcome-banner-actions">
@@ -37,12 +38,68 @@
   <!-- Backend Feedback Banner (Shown when region request is loading, succeeds, or unavailable) -->
   <div id="dashboard-status-banner" class="notice notice-info is-hidden" role="status" aria-live="polite"></div>
 
+
+  <!-- Investigation form -->
+  <section class="card investigation-card" aria-labelledby="investigate-heading">
+    <div class="card-header">
+      <div>
+        <h2 id="investigate-heading" style="font-size: 1.0625rem;">Start an Investigation</h2>
+        <p style="font-size: 0.8125rem;" id="coverage-note">Choose a region, variable, data source and period.</p>
+      </div>
+    </div>
+    <form id="investigation-form" class="investigation-form" novalidate>
+      <div class="form-field">
+        <label for="inv-region" class="form-label">Region</label>
+        <select id="inv-region" name="region" class="form-select">
+          <option value="lagos">Lagos State</option>
+          <option value="edo">Edo State</option>
+          <option value="both">Compare Lagos &amp; Edo</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="inv-variable" class="form-label">Variable</label>
+        <select id="inv-variable" name="variable" class="form-select">
+          <option value="temperature">Temperature (°C)</option>
+          <option value="rainfall">Rainfall (mm)</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="inv-source" class="form-label">Data source</label>
+        <select id="inv-source" name="source" class="form-select">
+          <option value="power">NASA POWER (MERRA-2)</option>
+          <option value="imerg">NASA GPM IMERG (satellite rainfall)</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="inv-start" class="form-label">From year</label>
+        <input id="inv-start" name="start_year" type="number" class="form-input" min="1981" max="2025" value="1981" inputmode="numeric">
+      </div>
+      <div class="form-field">
+        <label for="inv-end" class="form-label">To year</label>
+        <input id="inv-end" name="end_year" type="number" class="form-input" min="1981" max="2025" value="2025" inputmode="numeric">
+      </div>
+      <div class="form-field">
+        <label for="inv-detail" class="form-label">Explanation detail</label>
+        <select id="inv-detail" name="detail" class="form-select">
+          <option value="simple">Simple</option>
+          <option value="detailed" selected>Detailed</option>
+          <option value="research">Research</option>
+        </select>
+      </div>
+      <div class="form-field investigation-submit">
+        <button type="submit" id="investigate-btn" class="btn btn-primary">
+          <span>Investigate</span>
+        </button>
+      </div>
+    </form>
+  </section>
+
   <!-- Study Regions -->
   <section aria-labelledby="regions-heading">
     <div class="section-row-head">
       <div>
         <h2 id="regions-heading">Study Regions</h2>
-        <p style="font-size: 0.875rem;">Select a Nigerian study region to query historical observations from the Flask backend.</p>
+        <p style="font-size: 0.875rem;">Pick a region to run a full investigation with the settings below.</p>
       </div>
       <span class="meta-line">2 primary zones</span>
     </div>
@@ -63,14 +120,14 @@
         </div>
 
         <div class="region-card-footer">
-          <span class="meta-line" data-region-status="lagos">Ready to query backend</span>
+          <span class="meta-line" data-region-status="lagos">NASA POWER · MERRA-2</span>
           <button type="button" class="btn btn-primary btn-sm" data-analyse-region="lagos">
             <span>Analyse Region</span>
           </button>
         </div>
       </article>
 
-      <article class="region-card" data-region-card="edo">
+      <article class="card card-interactive region-card" data-region-card="edo">
         <div class="region-card-top">
           <div>
             <div class="meta-line" style="margin-bottom: 6px;">
@@ -85,7 +142,7 @@
         </div>
 
         <div class="region-card-footer">
-          <span class="meta-line" data-region-status="edo">Ready to query backend</span>
+          <span class="meta-line" data-region-status="edo">NASA POWER · MERRA-2</span>
           <button type="button" class="btn btn-primary btn-sm" data-analyse-region="edo">
             <span>Analyse Region</span>
           </button>
@@ -94,104 +151,83 @@
     </div>
   </section>
 
-  <!-- Environmental Overview -->
+  <!-- Investigation Results -->
   <section id="environmental-overview" aria-labelledby="overview-heading">
     <div class="section-row-head">
       <div>
-        <h2 id="overview-heading">Environmental Overview</h2>
-        <p style="font-size: 0.875rem;">Real observations and trend summaries appear below once a region or dataset is analysed.</p>
+        <h2 id="overview-heading">Investigation Results</h2>
+        <p style="font-size: 0.875rem;">Every figure below is calculated from NASA records by the Omi analysis engine.</p>
       </div>
-      <div id="overview-active-region" class="meta-line">No active dataset connected</div>
+      <div id="overview-active-region" class="meta-line">No investigation run yet</div>
     </div>
 
-    <div class="overview-grid">
-      <!-- Temperature Trends -->
+    <div id="results-empty" class="card empty-state">
+      <div class="empty-state-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+      </div>
+      <p>Run an investigation above to see the time-series chart, trend statistics and an explanation.</p>
+    </div>
+
+    <div id="results-panel" class="results-stack is-hidden">
+      <div id="results-kpis" class="kpi-strip"></div>
+
       <article class="card overview-panel">
         <div class="card-header">
           <div>
-            <h3 style="font-size: 1rem;">Temperature Trends</h3>
-            <p style="font-size: 0.8125rem;">Surface temperature trajectory over time</p>
+            <h3 style="font-size: 1rem;" id="chart-title">Time series</h3>
+            <p style="font-size: 0.8125rem;" id="chart-subtitle"></p>
           </div>
-          <span class="mono-value" style="font-size: 0.8125rem; color: var(--text-muted);" id="temp-unit-label">°C</span>
-        </div>
-        <div id="temperature-panel-body" class="empty-state">
-          <div class="empty-state-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
-            </svg>
+          <div class="segmented" role="group" aria-label="Chart resolution">
+            <button type="button" class="segmented-btn is-active" data-chart-mode="annual" aria-pressed="true">Yearly</button>
+            <button type="button" class="segmented-btn" data-chart-mode="monthly" aria-pressed="false">Monthly</button>
           </div>
-          <p>No environmental dataset has been analysed yet. Start by selecting a region or uploading your own time-series data.</p>
-          <a href="{{ url_for('upload') }}" class="btn btn-secondary btn-sm">Analyse Dataset</a>
         </div>
+        <div id="results-chart" class="card-body chart-container"></div>
       </article>
 
-      <!-- Rainfall Trends -->
-      <article class="card overview-panel">
-        <div class="card-header">
-          <div>
-            <h3 style="font-size: 1rem;">Rainfall Trends</h3>
-            <p style="font-size: 0.8125rem;">Precipitation volume and seasonal variation</p>
+      <div class="results-grid">
+        <article class="card overview-panel">
+          <div class="card-header">
+            <div>
+              <h3 style="font-size: 1rem;">What this means</h3>
+              <p style="font-size: 0.8125rem;" id="explanation-meta">Explanation generated from the calculated results</p>
+            </div>
+            <a id="ask-omi-btn" href="{{ url_for('assistant') }}" class="btn btn-secondary btn-sm">Ask Omi about this</a>
           </div>
-          <span class="mono-value" style="font-size: 0.8125rem; color: var(--text-muted);" id="rain-unit-label">mm</span>
-        </div>
-        <div id="rainfall-panel-body" class="empty-state">
-          <div class="empty-state-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/>
-              <line x1="8" y1="19" x2="8" y2="21"/>
-              <line x1="12" y1="17" x2="12" y2="21"/>
-              <line x1="16" y1="19" x2="16" y2="21"/>
-            </svg>
-          </div>
-          <p>No environmental dataset has been analysed yet. Start by selecting a region or uploading your own time-series data.</p>
-          <a href="{{ url_for('upload') }}" class="btn btn-secondary btn-sm">Analyse Dataset</a>
-        </div>
-      </article>
+          <div id="results-explanation" class="card-body explanation-text"></div>
+        </article>
 
-      <!-- Historical Observations -->
-      <article class="card overview-panel">
-        <div class="card-header">
-          <div>
-            <h3 style="font-size: 1rem;">Historical Observations</h3>
-            <p style="font-size: 0.8125rem;">Chronological records and baseline summary</p>
+        <article class="card overview-panel">
+          <div class="card-header">
+            <div>
+              <h3 style="font-size: 1rem;">Statistical results</h3>
+              <p style="font-size: 0.8125rem;">Linear regression, Sen's slope and Mann-Kendall tests</p>
+            </div>
           </div>
-        </div>
-        <div id="observations-panel-body" class="empty-state">
-          <div class="empty-state-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-              <line x1="16" y1="2" x2="16" y2="6"/>
-              <line x1="8" y1="2" x2="8" y2="6"/>
-              <line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-          </div>
-          <p>Historical observation records will appear here once a study region responds or a CSV time-series file is analysed.</p>
-          <a href="{{ url_for('upload') }}" class="btn btn-secondary btn-sm">Analyse Dataset</a>
-        </div>
-      </article>
+          <div id="results-stats" class="card-body preview-table-wrap"></div>
+        </article>
+      </div>
 
-      <!-- Regional Comparison -->
-      <article class="card overview-panel">
+      <article id="comparison-card" class="card overview-panel is-hidden">
         <div class="card-header">
           <div>
             <h3 style="font-size: 1rem;">Regional Comparison</h3>
             <p style="font-size: 0.8125rem;">Lagos State (coastal) vs. Edo State (inland forest)</p>
           </div>
-          <button type="button" id="compare-regions-btn" class="btn btn-ghost btn-sm">Compare Regions</button>
         </div>
-        <div id="comparison-panel-body" class="empty-state">
-          <div class="empty-state-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="18" cy="5" r="3"/>
-              <circle cx="6" cy="12" r="3"/>
-              <circle cx="18" cy="19" r="3"/>
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-            </svg>
+        <div id="comparison-panel-body" class="card-body preview-table-wrap"></div>
+      </article>
+
+      <article class="card overview-panel">
+        <div class="card-header">
+          <div>
+            <h3 style="font-size: 1rem;">Data source, method &amp; limitations</h3>
+            <p style="font-size: 0.8125rem;">Where the numbers come from and how to read them responsibly</p>
           </div>
-          <p>No environmental dataset has been analysed yet. Select Lagos or Edo above, or upload regional datasets to compare patterns.</p>
-          <a href="{{ url_for('upload') }}" class="btn btn-secondary btn-sm">Analyse Dataset</a>
         </div>
+        <div id="results-source" class="card-body source-notes"></div>
       </article>
     </div>
   </section>
@@ -228,7 +264,7 @@
       <button type="button" id="explore-trends-btn" class="card card-interactive quick-action-card">
         <div>
           <div class="quick-action-title">Explore Historical Trends</div>
-          <div class="quick-action-desc">Jump to regional panels and query available records</div>
+          <div class="quick-action-desc">Jump to the investigation form and results</div>
         </div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <line x1="5" y1="12" x2="19" y2="12"/>
@@ -241,5 +277,6 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/results.js') }}"></script>
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}
