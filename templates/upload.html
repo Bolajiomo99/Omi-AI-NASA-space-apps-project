@@ -1,57 +1,232 @@
-
 {% extends "base.html" %}
+{% set active_page = 'upload' %}
 
-{% block title %}Upload Dataset | Omi AI{% endblock %}
+{% block title %}Analyse a Dataset — Omi AI{% endblock %}
+{% block page_title %}CSV Data Upload &amp; Analysis{% endblock %}
+
+{% block topbar_cta %}
+<a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-sm">Back to Overview</a>
+{% endblock %}
 
 {% block content %}
+<div id="upload-workspace"
+     data-upload-endpoint="/api/upload"
+     data-analysis-endpoint="/api/analysis">
 
-<h1>Upload Your Dataset</h1>
+  <!-- Progress Stepper -->
+  <nav class="stepper-bar" aria-label="Dataset analysis steps">
+    <div class="stepper-item is-active" data-step-indicator="1">
+      <span class="stepper-num">1</span>
+      <div>
+        <div class="stepper-label">Upload CSV</div>
+      </div>
+    </div>
+    <div class="stepper-item" data-step-indicator="2">
+      <span class="stepper-num">2</span>
+      <div>
+        <div class="stepper-label">Configure Dataset</div>
+      </div>
+    </div>
+    <div class="stepper-item" data-step-indicator="3">
+      <span class="stepper-num">3</span>
+      <div>
+        <div class="stepper-label">Run Analysis</div>
+      </div>
+    </div>
+    <div class="stepper-item" data-step-indicator="4">
+      <span class="stepper-num">4</span>
+      <div>
+        <div class="stepper-label">Inspect Results</div>
+      </div>
+    </div>
+  </nav>
 
-<p>
-    Upload a CSV file containing historical environmental measurements.
-</p>
+  <!-- Step 1: Upload -->
+  <section class="card" aria-labelledby="step1-heading" style="margin-top: 24px;">
+    <div class="card-header">
+      <div>
+        <h2 id="step1-heading" style="font-size: 1.125rem;">Step 1: Upload CSV Time-Series File</h2>
+        <p style="font-size: 0.875rem;">Select a comma-separated (.csv) environmental dataset from your computer.</p>
+      </div>
+      <span class="meta-line">Accepted format: .csv</span>
+    </div>
 
-<section class="panel">
+    <div class="card-body">
+      <input id="csv-file-input" type="file" accept=".csv,text/csv" class="sr-only">
 
-    <form id="upload-form">
+      <div id="csv-dropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload CSV file by clicking or dragging and dropping">
+        <div class="empty-state-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <div>
+          <strong style="font-family: var(--font-display); display: block; margin-bottom: 4px;">Drag and drop your CSV file here</strong>
+          <span style="font-size: 0.875rem; color: var(--text-muted);">Headers are inspected locally in your browser before uploading for statistical analysis.</span>
+        </div>
+        <button type="button" id="browse-file-btn" class="btn btn-primary btn-sm">Browse Computer</button>
+      </div>
 
-        <label>CSV File</label>
+      <div id="selected-file-bar" class="file-summary-bar is-hidden" style="margin-top: 16px;">
+        <div>
+          <div style="font-family: var(--font-display); font-weight: 700;" id="selected-file-name">dataset.csv</div>
+          <div class="meta-line" id="selected-file-meta">0 KB</div>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button type="button" id="replace-file-btn" class="btn btn-secondary btn-sm">Replace File</button>
+          <button type="button" id="remove-file-btn" class="btn btn-danger-ghost btn-sm">Remove</button>
+        </div>
+      </div>
 
-        <input
-            type="file"
-            name="file"
-            accept=".csv"
-            required
-        >
+      <div id="file-error-banner" class="notice notice-error is-hidden" style="margin-top: 16px;" role="alert"></div>
+    </div>
+  </section>
 
-        <label>Date Column</label>
+  <!-- Step 2: Configure the dataset -->
+  <section id="step2-section" class="card is-hidden" aria-labelledby="step2-heading" style="margin-top: 24px;">
+    <div class="card-header">
+      <div>
+        <h2 id="step2-heading" style="font-size: 1.125rem;">Step 2: Configure Dataset Columns &amp; Metadata</h2>
+        <p style="font-size: 0.875rem;">Verify the automatically suggested columns or adjust them to match your dataset structure.</p>
+      </div>
+    </div>
 
-        <input
-            type="text"
-            name="date_column"
-            value="date"
-            required
-        >
+    <div class="card-body" style="display: flex; flex-direction: column; gap: 24px;">
+      <!-- Client-side Preview Banner -->
+      <div class="notice notice-info">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="16" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        <div>
+          <strong>Browser-side preview only (not a completed scientific analysis):</strong> Showing up to the first 5 rows parsed locally to assist column mapping. Official statistics are calculated only by the Flask backend after clicking Analyse Dataset.
+        </div>
+      </div>
 
-        <label>Measurement Column</label>
+      <div id="csv-preview-container" class="preview-table-wrap"></div>
 
-        <input
-            type="text"
-            name="value_column"
-            value="value"
-            required
-        >
+      <form id="analysis-config-form" class="form-grid" novalidate>
+        <div class="form-field">
+          <label for="date-column-select" class="form-label">Date / Time Column</label>
+          <select id="date-column-select" name="date_column" class="form-select" required></select>
+          <span id="date-suggestion-hint" class="form-hint"></span>
+        </div>
 
-        <button type="submit" class="button">
-            Analyse Dataset
+        <div class="form-field">
+          <label for="value-column-select" class="form-label">Measurement Column</label>
+          <select id="value-column-select" name="value_column" class="form-select" required></select>
+          <span id="value-suggestion-hint" class="form-hint"></span>
+        </div>
+
+        <div class="form-field">
+          <label for="variable-select" class="form-label">Environmental Variable</label>
+          <select id="variable-select" name="variable" class="form-select">
+            <option value="temperature">Temperature</option>
+            <option value="rainfall">Rainfall</option>
+            <option value="humidity">Relative Humidity</option>
+            <option value="solar_radiation">Solar Radiation</option>
+            <option value="other">Other Environmental Variable</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="unit-input" class="form-label">Measurement Unit</label>
+          <input id="unit-input" name="unit" type="text" class="form-input" value="°C" placeholder="e.g. °C, mm, mm/day, %" required>
+        </div>
+
+        <div class="form-field">
+          <label for="region-select" class="form-label">Study Region</label>
+          <select id="region-select" name="region" class="form-select">
+            <option value="lagos">Lagos State (South-West Nigeria)</option>
+            <option value="edo">Edo State (South-South Nigeria)</option>
+            <option value="custom">Other / Custom Study Region</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="custom-region-input" class="form-label">Custom Region Label (Optional)</label>
+          <input id="custom-region-input" name="custom_region" type="text" class="form-input" placeholder="e.g. Ikeja Station or Benin Basin">
+        </div>
+
+        <div class="form-field form-field-full">
+          <label for="dataset-description" class="form-label">Dataset Description (Optional)</label>
+          <textarea id="dataset-description" name="description" class="form-textarea" placeholder="Add notes about data source, station elevation, or observation cadence..."></textarea>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- Step 3: Analyse -->
+  <section id="step3-section" class="card is-hidden" aria-labelledby="step3-heading" style="margin-top: 24px;">
+    <div class="card-header">
+      <div>
+        <h2 id="step3-heading" style="font-size: 1.125rem;">Step 3: Submit Dataset for Statistical Analysis</h2>
+        <p style="font-size: 0.875rem;">Validates your selected columns and sends the CSV payload to the Flask processing pipeline.</p>
+      </div>
+    </div>
+
+    <div class="card-body" style="display: flex; flex-direction: column; gap: 16px;">
+      <div id="analysis-validation-error" class="notice notice-error is-hidden" role="alert"></div>
+      <div id="analysis-loading-banner" class="notice notice-info is-hidden" role="status" aria-live="polite">
+        <span class="spinner spinner-dark" aria-hidden="true"></span>
+        <span>Uploading dataset and running statistical trend analysis on the Flask backend...</span>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+        <p style="font-size: 0.875rem; max-width: 60ch;">
+          Confirm that your Date/Time and Measurement columns above are distinct and properly matched before starting analysis.
+        </p>
+        <button type="button" id="analyse-dataset-btn" class="btn btn-primary btn-lg">
+          <span>Analyse Dataset &rarr;</span>
         </button>
+      </div>
+    </div>
+  </section>
 
-    </form>
+  <!-- Step 4: Results -->
+  <section id="step4-section" class="card is-hidden" aria-labelledby="step4-heading" style="margin-top: 24px;">
+    <div class="card-header">
+      <div>
+        <h2 id="step4-heading" style="font-size: 1.125rem;">Step 4: Analysis Results</h2>
+        <p id="results-overview-meta" style="font-size: 0.875rem;">Statistical findings returned from the Flask backend</p>
+      </div>
+      <span class="meta-line" id="results-trend-badge">Trend Summary</span>
+    </div>
 
-    <pre id="upload-result"></pre>
+    <div class="card-body" style="display: flex; flex-direction: column; gap: 24px;">
+      <!-- Overview Summary Grid -->
+      <div id="results-kpi-strip" class="kpi-strip"></div>
 
-</section>
+      <!-- Trend Chart -->
+      <div class="card" style="padding: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
+          <div>
+            <h3 style="font-size: 1rem;">Time-Series Trend Chart</h3>
+            <p style="font-size: 0.8125rem;" id="results-chart-subtitle">Plotted directly from backend-returned observations</p>
+          </div>
+          <span class="mono-value" style="font-size: 0.8125rem; color: var(--text-muted);" id="results-date-range"></span>
+        </div>
+        <div id="results-chart-container" class="chart-container"></div>
+      </div>
 
+      <!-- Statistical Results & Data Quality -->
+      <div class="overview-grid">
+        <article class="card" style="padding: 20px;">
+          <h3 style="font-size: 1rem; margin-bottom: 12px;">Statistical Results</h3>
+          <div id="results-statistics-table" class="preview-table-wrap"></div>
+        </article>
+
+        <article class="card" style="padding: 20px;">
+          <h3 style="font-size: 1rem; margin-bottom: 12px;">Data Quality Information</h3>
+          <div id="results-quality-table" class="preview-table-wrap"></div>
+        </article>
+      </div>
+    </div>
+  </section>
+</div>
 {% endblock %}
 
 {% block scripts %}
